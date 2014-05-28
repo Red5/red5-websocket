@@ -2,6 +2,9 @@ package org.red5.net.websocket;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import java.util.concurrent.Executors;
 
 import org.apache.mina.core.service.IoHandlerAdapter;
@@ -38,6 +41,8 @@ public class WebSocketTransport implements InitializingBean, DisposableBean {
 
 	private int port = 80;
 
+	private Set<String> addresses = new HashSet<String>();
+
 	private IoHandlerAdapter ioHandler;
 
 	private SocketAcceptor acceptor;
@@ -57,8 +62,27 @@ public class WebSocketTransport implements InitializingBean, DisposableBean {
 		sessionConf.setReceiveBufferSize(receiveBufferSize);
 		sessionConf.setSendBufferSize(sendBufferSize);
 		acceptor.setReuseAddress(true);
-		acceptor.bind(new InetSocketAddress(port));
-		log.info("start web socket");
+		if (addresses.isEmpty()) {
+			acceptor.bind(new InetSocketAddress(port));
+		} else {
+			try {
+				// loop through the addresses and bind
+				Set<InetSocketAddress> socketAddresses = new HashSet<InetSocketAddress>();
+				for (String addr : addresses) {
+					if (addr.indexOf(':') != -1) {
+						String[] parts = addr.split(":");
+						socketAddresses.add(new InetSocketAddress(parts[0], Integer.valueOf(parts[1])));
+					} else {
+						socketAddresses.add(new InetSocketAddress(addr, port));
+					}
+				}
+				log.debug("Binding to {}", socketAddresses.toString());
+				acceptor.bind(socketAddresses);
+			} catch (Exception e) {
+				log.error("Exception occurred during resolve / bind", e);
+			}			
+		}
+		log.info("started websocket transport");
 	}
 
 	/**
@@ -70,6 +94,13 @@ public class WebSocketTransport implements InitializingBean, DisposableBean {
 		acceptor.unbind();
 	}	
 	
+	public void setAddresses(List<String> addrs) {
+		for (String addr : addrs) {
+			addresses.add(addr);
+		}
+		log.info("WebSocket will be bound to {}", addresses);
+	}
+
 	/**
 	 * @param port the port to set
 	 */
