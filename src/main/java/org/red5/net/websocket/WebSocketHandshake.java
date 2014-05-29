@@ -7,6 +7,8 @@ import org.apache.mina.core.buffer.IoBuffer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import org.red5.server.plugin.PluginRegistry;
+
 /**
  * WebSocketHandshake
  * <pre>
@@ -61,8 +63,8 @@ public class WebSocketHandshake {
 						path = ary[0];
 						conn.setPath(ary[0]);
 						ary = ary[0].split("/");
-						WebSocketScopeManager manager = new WebSocketScopeManager();
-						if (ary.length <= 1 || !manager.isPluginedApplication(ary[1])) {
+						WebSocketScopeManager manager = ((WebSocketPlugin) PluginRegistry.getPlugin("WebSocketPlugin")).getManager();
+						if (ary.length <= 1 || !manager.isEnabled(ary[1])) {
 							// scope is not application. handshake will be false;
 							// send disconnect message.
 							IoBuffer buf = IoBuffer.allocate(4);
@@ -71,7 +73,7 @@ public class WebSocketHandshake {
 							conn.send(buf);
 							// close connection.
 							conn.close();
-							throw new WebSocketException("failed for handshaking.");
+							throw new WebSocketException("Handshaking failed");
 						}
 					} else if (data.contains("Sec-WebSocket-Key1")) {
 						// get the key1 data
@@ -144,10 +146,10 @@ public class WebSocketHandshake {
 			result = crypt(b);
 		} catch (NoSuchAlgorithmException e) {
 			e.printStackTrace();
-			throw new WebSocketException("MD5 algorithm is missing.");
+			throw new WebSocketException("MD5 algorithm is missing");
 		} catch (ArrayIndexOutOfBoundsException e) {
 			e.printStackTrace();
-			throw new WebSocketException("Data is too short.");
+			throw new WebSocketException("Data is too short");
 		}
 		// make up reply data...
 		IoBuffer buf = IoBuffer.allocate(2048);
@@ -158,7 +160,7 @@ public class WebSocketHandshake {
 		buf.put(bb);
 		buf.put(("Sec-WebSocket-Origin: " + origin).getBytes());
 		buf.put(bb);
-		buf.put(("Sec-WebSocket-Location: " + "ws://" + host + path).getBytes());
+		buf.put(("Sec-WebSocket-Location: ws://" + host + path).getBytes());
 		buf.put(bb);
 		buf.put("Sec-WebSocket-Protocol: sample".getBytes());
 		buf.put(bb);
@@ -169,9 +171,9 @@ public class WebSocketHandshake {
 		conn.getSession().write(buf);
 		// handshake is finished
 		conn.setConnected();
-		WebSocketScopeManager manager = new WebSocketScopeManager();
+		WebSocketScopeManager manager = ((WebSocketPlugin) PluginRegistry.getPlugin("WebSocketPlugin")).getManager();
 		manager.addConnection(conn);
-		log.debug("HandShake complete");
+		log.debug("Handshake complete");
 	}
 
 	/**

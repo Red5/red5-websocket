@@ -4,6 +4,9 @@ import org.red5.server.Server;
 import org.red5.server.adapter.MultiThreadedApplicationAdapter;
 import org.red5.server.plugin.Red5Plugin;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 /**
  * WebSocketPlugin
  * <pre>
@@ -14,7 +17,12 @@ import org.red5.server.plugin.Red5Plugin;
  */
 public class WebSocketPlugin extends Red5Plugin {
 
+	private Logger log = LoggerFactory.getLogger(WebSocketPlugin.class);
+
+	private WebSocketScopeManager manager = new WebSocketScopeManager();
+
 	public WebSocketPlugin() {
+		log.info("WebSocketPlugin ctor");
 	}
 
 	/**
@@ -23,6 +31,7 @@ public class WebSocketPlugin extends Red5Plugin {
 	@Override
 	public void doStart() throws Exception {
 		super.doStart();
+		log.info("WebSocketPlugin start");
 	}
 
 	/**
@@ -41,13 +50,18 @@ public class WebSocketPlugin extends Red5Plugin {
 		return super.getServer();
 	}
 
+	public WebSocketScopeManager getManager() {
+		return manager;
+	}
+
 	/**
 	 * {@inheritDoc}
 	 */
 	@Override
 	public void setApplication(MultiThreadedApplicationAdapter application) {
-		WebSocketScopeManager manager = new WebSocketScopeManager();
-		manager.addPluginedApplication(application.getName());
+		log.info("WebSocketPlugin application: {}", application);
+		manager.addApplication(application.getName());
 		super.setApplication(application);
 	}
+	
 }

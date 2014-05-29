@@ -5,6 +5,8 @@ import java.io.UnsupportedEncodingException;
 import org.apache.mina.core.buffer.IoBuffer;
 import org.apache.mina.core.session.IoSession;
 
+import org.red5.server.plugin.PluginRegistry;
+
 /**
  * WebSocketConnection
  * <pre>
@@ -134,7 +136,7 @@ public class WebSocketConnection {
 	 */
 	public void receive(IoBuffer buffer) {
 		if (isConnected()) {
-			WebSocketScopeManager manager = new WebSocketScopeManager();
+			WebSocketScopeManager manager = ((WebSocketPlugin) PluginRegistry.getPlugin("WebSocketPlugin")).getManager();
 			WebSocketScope scope = manager.getScope(getPath());
 			scope.setMessage(buffer);
 		} else {
@@ -151,7 +153,7 @@ public class WebSocketConnection {
 	 * close Connection
 	 */
 	public void close() {
-		WebSocketScopeManager manager = new WebSocketScopeManager();
+		WebSocketScopeManager manager = ((WebSocketPlugin) PluginRegistry.getPlugin("WebSocketPlugin")).getManager();
 		manager.removeConnection(this);
 		session.close(true);
 	}

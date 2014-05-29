@@ -6,27 +6,35 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * to manage scopes.
+ * Manages scopes.
+ *
  * @author Toda Takahiko
  */
 public class WebSocketScopeManager {
 	
-	private static Set<String> pluginedApplicationSet = new HashSet<String>();
+	private Set<String> activeApplications = new HashSet<String>();
 
-	private static Map<String, WebSocketScope> scopes = new HashMap<String, WebSocketScope>();
+	private Map<String, WebSocketScope> scopes = new HashMap<String, WebSocketScope>();
 
 	/**
 	 * @return true:valid application name,
 	 */
-	public boolean isPluginedApplication(String application) {
-		return pluginedApplicationSet.contains(application);
+	public boolean isEnabled(String application) {
+		return activeApplications.contains(application);
 	}
 
 	/**
 	 * @param application application name.
 	 */
-	public void addPluginedApplication(String application) {
-		pluginedApplicationSet.add(application);
+	public void addApplication(String application) {
+		activeApplications.add(application);
+	}
+
+	/**
+	 * @param application application name.
+	 */
+	public void removeApplication(String application) {
+		activeApplications.remove(application);
 	}
 
 	/**
@@ -42,8 +50,7 @@ public class WebSocketScopeManager {
 	 * @param conn WebSocketConnection
 	 */
 	public void addConnection(WebSocketConnection conn) {
-		WebSocketScope scope;
-		scope = getScope(conn);
+		WebSocketScope scope = getScope(conn);
 		scope.addConnection(conn);
 	}
 
@@ -52,8 +59,7 @@ public class WebSocketScopeManager {
 	 * @param conn WebSocketConnection
 	 */
 	public void removeConnection(WebSocketConnection conn) {
-		WebSocketScope scope;
-		scope = getScope(conn);
+		WebSocketScope scope = getScope(conn);
 		scope.removeConnection(conn);
 		if (!scope.isValid()) {
 			// scope is not valid. delete this.
@@ -66,8 +72,7 @@ public class WebSocketScopeManager {
 	 * @param listener IWebSocketDataListener
 	 */
 	public void addListener(IWebSocketDataListener listener) {
-		WebSocketScope scope;
-		scope = getScope(listener);
+		WebSocketScope scope = getScope(listener);
 		scope.addListener(listener);
 	}
 
@@ -76,8 +81,7 @@ public class WebSocketScopeManager {
 	 * @param listener IWebSocketDataListener
 	 */
 	public void removeListener(IWebSocketDataListener listener) {
-		WebSocketScope scope;
-		scope = getScope(listener);
+		WebSocketScope scope = getScope(listener);
 		scope.removeListener(listener);
 		if (!scope.isValid()) {
 			// scope is not valid. delete this.
@@ -116,4 +120,5 @@ public class WebSocketScopeManager {
 		}
 		return scope;
 	}
+	
 }
