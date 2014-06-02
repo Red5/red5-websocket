@@ -1,14 +1,34 @@
+/*
+ * RED5 Open Source Flash Server - http://code.google.com/p/red5/
+ * 
+ * Copyright 2006-2014 by respective authors (see below). All rights reserved.
+ * 
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * 
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package org.red5.net.websocket;
 
-import java.io.UnsupportedEncodingException;
 import java.util.HashSet;
 import java.util.Set;
 
 import org.apache.mina.core.buffer.IoBuffer;
+import org.red5.net.websocket.listener.IWebSocketDataListener;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class WebSocketScope {
 
-	private String charsetName = "UTF8"; //"SJIS";
+	private static final Logger log = LoggerFactory.getLogger(WebSocketScope.class);
 	
 	private String path;
 
@@ -17,19 +37,15 @@ public class WebSocketScope {
 	private Set<IWebSocketDataListener> listeners = new HashSet<IWebSocketDataListener>();
 
 	/**
-	 * constructor
-	 * @param path path data
-	 */
-	public WebSocketScope(String path) {
-		this.path = path; // /room/name
-	}
-
-	/**
 	 * get the set of connections
 	 * @return the conns
 	 */
 	public Set<WebSocketConnection> getConns() {
 		return conns;
+	}
+
+	public void setPath(String path) {
+		this.path = path; // /room/name
 	}
 
 	/**
@@ -47,7 +63,7 @@ public class WebSocketScope {
 	public void addConnection(WebSocketConnection conn) {
 		conns.add(conn);
 		for (IWebSocketDataListener listener : listeners) {
-			listener.connect(conn);
+			listener.onWSConnect(conn);
 		}
 	}
 
@@ -58,7 +74,7 @@ public class WebSocketScope {
 	public void removeConnection(WebSocketConnection conn) {
 		conns.remove(conn);
 		for (IWebSocketDataListener listener : listeners) {
-			listener.leave(conn);
+			listener.onWSDisconnect(conn);
 		}
 	}
 
@@ -67,6 +83,7 @@ public class WebSocketScope {
 	 * @param listener IWebSocketDataListener
 	 */
 	public void addListener(IWebSocketDataListener listener) {
+		log.info("addListener: {}", listener.getPath());
 		listeners.add(listener);
 	}
 
@@ -75,12 +92,13 @@ public class WebSocketScope {
 	 * @param listener IWebSocketDataListener
 	 */
 	public void removeListener(IWebSocketDataListener listener) {
-		System.out.println("remove:" + listener.getPath());
+		log.info("removeListener: {}", listener.getPath());
 		listeners.remove(listener);
 	}
 
 	/**
-	 * check the scope state.
+	 * Check the scope state.
+	 * 
 	 * @return true:still have relation
 	 */
 	public boolean isValid() {
@@ -88,53 +106,49 @@ public class WebSocketScope {
 	}
 
 	/**
-	 * get the message from client
+	 * Message received from client
+	 * 
+	 * @param buffer
 	 */
-	public void setMessage(IoBuffer buffer) {
+	public void onMessage(IoBuffer buffer) {
+		log.trace("Listeners: {}", listeners.size());
 		for (IWebSocketDataListener listener : listeners) {
 			try {
-				listener.getData(buffer);
-				listener.getMessage(getData(buffer));
-			} catch (UnsupportedEncodingException e) {
-				e.printStackTrace();
-			} catch (WebSocketException e) {
-				e.printStackTrace();
+				listener.onWSMessage(buffer);
+			} catch (Exception e) {
+				log.warn("onMessage exception", e);
 			}
 		}
 	}
 
-	/**
-	 * cut off first 0x00 and last 0xFF
-	 * @param buffer input buffer data
-	 * @return String data from client
-	 * @throws UnsupportedEncodingException 
-	 * @throws WebSocketException when we get invalid input.
-	 */
-	private String getData(IoBuffer buffer) throws WebSocketException, UnsupportedEncodingException {
-		byte[] b = new byte[buffer.capacity()];
-		int i = 0;
-		for (byte bi : buffer.array()) {
-			i++;
-			if (i == 1) {
-				if (bi == 0x00) {
-					continue;
-				} else {
-					throw new WebSocketException("first byte must be 0x00 for websocket");
-				}
-			}
-			if (bi == (byte) 0xFF) {
-				break;
-			}
-			b[i - 2] = bi;
-		}
-		return new String(b, charsetName).trim();
+	@Override
+	public int hashCode() {
+		final int prime = 31;
+		int result = 1;
+		result = prime * result + ((path == null) ? 0 : path.hashCode());
+		return result;
 	}
 
-	public String getCharsetName() {
-		return charsetName;
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj)
+			return true;
+		if (obj == null)
+			return false;
+		if (getClass() != obj.getClass())
+			return false;
+		WebSocketScope other = (WebSocketScope) obj;
+		if (path == null) {
+			if (other.path != null)
+				return false;
+		} else if (!path.equals(other.path))
+			return false;
+		return true;
 	}
 
-	public void setCharsetName(String charsetName) {
-		this.charsetName = charsetName;
+	@Override
+	public String toString() {
+		return "WebSocketScope [path=" + path + "]";
 	}
+	
 }

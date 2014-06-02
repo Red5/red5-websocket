@@ -16,17 +16,10 @@
  * limitations under the License.
  */
 
-package org.red5.net.websocket;
+package org.red5.net.websocket.model;
 
-/**
- * exception for WebSocketPlugin
- * @author Toda Takahiko
- */
-public class WebSocketException extends Exception {
+public enum ConnectionType {
 
-	private static final long serialVersionUID = 3534955883722927241L;
-
-	public WebSocketException(String message) {
-		super(message);
-	}
+	DIRECT, WEB;
+	
 }

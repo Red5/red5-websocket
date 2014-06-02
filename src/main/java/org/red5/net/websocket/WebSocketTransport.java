@@ -1,3 +1,21 @@
+/*
+ * RED5 Open Source Flash Server - http://code.google.com/p/red5/
+ * 
+ * Copyright 2006-2014 by respective authors (see below). All rights reserved.
+ * 
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * 
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package org.red5.net.websocket;
 
 import java.io.IOException;
@@ -48,7 +66,8 @@ public class WebSocketTransport implements InitializingBean, DisposableBean {
 	private SocketAcceptor acceptor;
 
 	/**
-	 * start to listen ports;
+	 * Creates the i/o handler and nio acceptor; ports and addresses are bound.
+	 * 
 	 * @throws IOException 
 	 */
 	@Override
@@ -56,6 +75,8 @@ public class WebSocketTransport implements InitializingBean, DisposableBean {
 		// instance the websocket handler
 		ioHandler = new WebSocketHandler();
 		acceptor = new NioSocketAcceptor(Executors.newFixedThreadPool(connectionThreads), new NioProcessor(Executors.newFixedThreadPool(ioThreads)));
+		// close sessions when the acceptor is stopped
+		acceptor.setCloseOnDeactivation(true);
 		acceptor.setHandler(ioHandler);
 		SocketSessionConfig sessionConf = acceptor.getSessionConfig();
 		sessionConf.setReuseAddress(true);
@@ -86,7 +107,7 @@ public class WebSocketTransport implements InitializingBean, DisposableBean {
 	}
 
 	/**
-	 * stop to listen ports;
+	 * Ports and addresses are unbound (stop listening).
 	 */
 	@Override
 	public void destroy() throws Exception {

@@ -16,17 +16,40 @@
  * limitations under the License.
  */
 
-package org.red5.net.websocket;
+package org.red5.net.websocket.listener;
+
+import org.apache.mina.core.buffer.IoBuffer;
+import org.red5.net.websocket.WebSocketConnection;
 
 /**
- * exception for WebSocketPlugin
- * @author Toda Takahiko
+ * Listener for WebSocket events.
  */
-public class WebSocketException extends Exception {
+public interface IWebSocketDataListener {
+	
+	/**
+	 * @return path of the scope
+	 */
+	public String getPath();
 
-	private static final long serialVersionUID = 3534955883722927241L;
+	/**
+	 * Dispatch message.
+	 * 
+	 * @param message
+	 */
+	public void onWSMessage(IoBuffer message);
 
-	public WebSocketException(String message) {
-		super(message);
-	}
+	/**
+	 * Connect a WebSocket client.
+	 * 
+	 * @param conn WebSocketConnection
+	 */
+	public void onWSConnect(WebSocketConnection conn);
+
+	/**
+	 * Disconnect WebSocket client.
+	 * 
+	 * @param conn WebSocketConnection
+	 */
+	public void onWSDisconnect(WebSocketConnection conn);
+	
 }

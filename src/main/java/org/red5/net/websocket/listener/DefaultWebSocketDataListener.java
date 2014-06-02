@@ -1,0 +1,74 @@
+/*
+ * RED5 Open Source Flash Server - http://code.google.com/p/red5/
+ * 
+ * Copyright 2006-2014 by respective authors (see below). All rights reserved.
+ * 
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * 
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package org.red5.net.websocket.listener;
+
+import java.io.UnsupportedEncodingException;
+import java.util.Set;
+
+import org.apache.mina.core.buffer.IoBuffer;
+import org.red5.net.websocket.WebSocketConnection;
+import org.red5.net.websocket.WebSocketPlugin;
+import org.red5.net.websocket.WebSocketScope;
+import org.red5.net.websocket.WebSocketScopeManager;
+import org.red5.server.api.scope.IScope;
+import org.red5.server.plugin.PluginRegistry;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+/**
+ * Default WebSocket data listener. In this default implementation, all messages are echoed back to every connection in the current scope.
+ * 
+ * @author Paul Gregoire (mondain@gmail.com)
+ */
+public class DefaultWebSocketDataListener extends WebSocketDataListener {
+
+	private static final Logger log = LoggerFactory.getLogger(DefaultWebSocketDataListener.class);
+	
+	public DefaultWebSocketDataListener(IScope scope) {
+		super(scope);
+	}
+
+	@Override
+	public void onWSConnect(WebSocketConnection conn) {
+		log.info("Connect: {}", conn);
+	}
+
+	@Override
+	public void onWSDisconnect(WebSocketConnection conn) {
+		log.info("Disconnect: {}", conn);
+	}
+
+	@Override
+	public void onWSMessage(IoBuffer message) {
+		log.info("Message: {}", message);
+		// just echo back the message
+		WebSocketScopeManager manager = ((WebSocketPlugin) PluginRegistry.getPlugin("WebSocketPlugin")).getManager();
+		WebSocketScope scope = manager.getScope(path);
+		Set<WebSocketConnection> conns = scope.getConns();
+		for (WebSocketConnection conn : conns) {
+			log.debug("Echoing to {}", conn);
+			try {
+				conn.send(new String(message.array()));
+			} catch (UnsupportedEncodingException e) {
+				log.warn("Encoding issue with the message data: {}", message, e);
+			}
+		}
+	}
+	
+}
