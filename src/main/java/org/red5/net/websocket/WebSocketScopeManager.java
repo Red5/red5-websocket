@@ -106,11 +106,15 @@ public class WebSocketScopeManager {
 	 * @param conn WebSocketConnection
 	 */
 	public void removeConnection(WebSocketConnection conn) {
-		WebSocketScope scope = getScope(conn);
-		scope.removeConnection(conn);
-		if (!scope.isValid()) {
-			// scope is not valid. delete this.
-			scopes.remove(scope);
+		if (conn != null) {
+    		WebSocketScope scope = getScope(conn);
+    		if (scope != null) {
+        		scope.removeConnection(conn);
+        		if (!scope.isValid()) {
+        			// scope is not valid. delete this.
+        			scopes.remove(scope);
+        		}
+    		}
 		}
 	}
 

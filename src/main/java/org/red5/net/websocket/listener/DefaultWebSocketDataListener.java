@@ -56,7 +56,8 @@ public class DefaultWebSocketDataListener extends WebSocketDataListener {
 
 	@Override
 	public void onWSMessage(IoBuffer message) {
-		log.info("Message: {}", message);
+		String msg = new String(message.array());
+		log.info("onWSMessage: {}", msg);
 		// just echo back the message
 		WebSocketScopeManager manager = ((WebSocketPlugin) PluginRegistry.getPlugin("WebSocketPlugin")).getManager();
 		WebSocketScope scope = manager.getScope(path);
@@ -64,7 +65,7 @@ public class DefaultWebSocketDataListener extends WebSocketDataListener {
 		for (WebSocketConnection conn : conns) {
 			log.debug("Echoing to {}", conn);
 			try {
-				conn.send(new String(message.array()));
+				conn.send(msg);
 			} catch (UnsupportedEncodingException e) {
 				log.warn("Encoding issue with the message data: {}", message, e);
 			}

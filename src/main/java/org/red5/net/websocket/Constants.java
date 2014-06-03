@@ -34,6 +34,8 @@ public class Constants {
 	public final static String WS_HEADER_VERSION = "Sec-WebSocket-Version";
 
 	public final static String WS_HEADER_EXTENSIONS = "Sec-WebSocket-Extensions";
+
+	public final static String WS_HEADER_PROTOCOL = "Sec-WebSocket-Protocol";
 	
 	public final static String HTTP_HEADER_HOST = "Host";
 

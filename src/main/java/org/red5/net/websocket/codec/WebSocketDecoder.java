@@ -25,6 +25,9 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.mina.core.buffer.IoBuffer;
+import org.apache.mina.core.future.IoFuture;
+import org.apache.mina.core.future.IoFutureListener;
+import org.apache.mina.core.future.WriteFuture;
 import org.apache.mina.core.session.IoSession;
 import org.apache.mina.filter.codec.CumulativeProtocolDecoder;
 import org.apache.mina.filter.codec.ProtocolDecoderOutput;
@@ -106,6 +109,8 @@ public class WebSocketDecoder extends CumulativeProtocolDecoder {
 				if (!"13".equals(headers.get(Constants.WS_HEADER_VERSION))) {
 					log.info("Version 13 was not found in the request, handshaking may fail");
 				}  
+				// TODO add handling for protocols requested by the client
+				
 				// store connection in the current session
 				session.setAttribute("connection", conn);
 				// handshake is finished
@@ -123,13 +128,20 @@ public class WebSocketDecoder extends CumulativeProtocolDecoder {
 			conn.setType(ConnectionType.DIRECT);
 		} catch (Exception e) {
 			// input is not a websocket handshake request
-			log.warn("Handshake failed, continuing as if connection is direct / native", e);
+			log.warn("Handshake failed", e);
 		}
 		return false;
 	}
 
-    // Parse the string as a websocket request and return the value from
-    // Sec-WebSocket-Key header (See RFC 6455). Return empty string if not found.
+	/**
+	 * Parse the client request and return a map containing the header contents. If the requested application is not enabled, return 
+	 * a 400 error.
+	 * 
+	 * @param conn
+	 * @param requestData
+	 * @return map of headers
+	 * @throws WebSocketException
+	 */
     private Map<String, String> parseClientRequest(WebSocketConnection conn, String requestData) throws WebSocketException {
         String[] request = requestData.split("\r\n");
         log.warn("Request: {}", Arrays.toString(request));
@@ -139,18 +151,28 @@ public class WebSocketDecoder extends CumulativeProtocolDecoder {
 				// get the path data for handShake
         		int start = request[i].indexOf('/');
         		int end = request[i].indexOf(' ', start);
-				String path = request[i].substring(start, end);
-				conn.setPath(path);
+        		// check for '?' or included query string
+        		if (request[i].indexOf('?', start) > 0) {
+        			end = request[i].indexOf('?', start);
+    				// parse any included query string
+        			
+        		}
+				String path = request[i].substring(start, end).trim();
+				conn.setPath(path);				
+				// get the manager
 				WebSocketScopeManager manager = ((WebSocketPlugin) PluginRegistry.getPlugin("WebSocketPlugin")).getManager();
 				// only check that the application is enabled, not the room or sub levels
-				if (path.length() <= 1 || !manager.isEnabled(path)) {
+				if (!manager.isEnabled(path)) {
 					// invalid scope or its application is not enabled, send disconnect message
-					IoBuffer buf = IoBuffer.allocate(4);
-					buf.put(new byte[] { (byte) 0xFF, (byte) 0x00 });
-					buf.flip();
-					conn.send(buf);
-					// close connection
-					conn.close();
+					HandshakeResponse errResponse = build400Response(conn);		
+					WriteFuture future = conn.getSession().write(errResponse);
+					future.addListener(new IoFutureListener<IoFuture>() {
+						@Override
+						public void operationComplete(IoFuture future) {
+							// close connection
+							future.getSession().close(false);
+						}
+					});
 					throw new WebSocketException("Handshake failed");
 				}        	
         	} else if (request[i].contains(Constants.WS_HEADER_KEY)) {
@@ -159,6 +181,8 @@ public class WebSocketDecoder extends CumulativeProtocolDecoder {
                 map.put(Constants.WS_HEADER_VERSION, extractHeaderValue(request[i]));              
             } else if (request[i].contains(Constants.WS_HEADER_EXTENSIONS)) {
                 map.put(Constants.WS_HEADER_EXTENSIONS, extractHeaderValue(request[i]));              
+            } else if (request[i].contains(Constants.WS_HEADER_PROTOCOL)) {
+                map.put(Constants.WS_HEADER_PROTOCOL, extractHeaderValue(request[i]));              
             } else if (request[i].contains(Constants.HTTP_HEADER_HOST)) {
 				// get the host data
 				conn.setHost(extractHeaderValue(request[i]));
@@ -200,7 +224,8 @@ public class WebSocketDecoder extends CumulativeProtocolDecoder {
 			throw new WebSocketException("Algorithm is missing");
 		}
 		// make up reply data...
-		IoBuffer buf = IoBuffer.allocate(2048);
+		IoBuffer buf = IoBuffer.allocate(302);
+		buf.setAutoExpand(true);
 		buf.put("HTTP/1.1 101 Switching Protocols".getBytes());
 		buf.put(Constants.CRLF);
 		buf.put("Upgrade: websocket".getBytes());
@@ -213,10 +238,34 @@ public class WebSocketDecoder extends CumulativeProtocolDecoder {
 		buf.put(Constants.CRLF);
 		buf.put(String.format("Sec-WebSocket-Accept: %s", new String(accept)).getBytes());
 		buf.put(Constants.CRLF);
+		buf.put("Sec-WebSocket-Version-Server: 13".getBytes());
+		buf.put(Constants.CRLF);
+		buf.put("Server: Red5".getBytes());
+		buf.put(Constants.CRLF);
 		buf.put(Constants.CRLF);
 		buf.put(accept);
+		log.trace("Handshake response size: {}", buf.limit());
 		return new HandshakeResponse(buf);
 	}
+	
+	/**
+	 * Build an HTTP 400 "Bad Request" response.
+	 * 
+	 * @return response
+	 * @throws WebSocketException 
+	 */
+	private HandshakeResponse build400Response(WebSocketConnection conn) throws WebSocketException {
+		// make up reply data...
+		IoBuffer buf = IoBuffer.allocate(32);
+		buf.setAutoExpand(true);
+		buf.put("HTTP/1.1 400 Bad Request".getBytes());
+		buf.put(Constants.CRLF);
+		buf.put("Sec-WebSocket-Version-Server: 13".getBytes());
+		buf.put(Constants.CRLF);
+		buf.put(Constants.CRLF);
+		log.trace("Handshake error response size: {}", buf.limit());
+		return new HandshakeResponse(buf);
+	}	
 	
 	/**
 	 * Decode the in buffer according to the Section 5.2. RFC 6455.
@@ -246,7 +295,7 @@ public class WebSocketDecoder extends CumulativeProtocolDecoder {
 	 * @param session
 	 * @return IoBuffer
 	 */
-	private static IoBuffer decodeIncommingData(IoBuffer in, IoSession session) {
+	public static IoBuffer decodeIncommingData(IoBuffer in, IoSession session) {
 		IoBuffer resultBuffer = null;
 		do {
 			byte frameInfo = in.get();

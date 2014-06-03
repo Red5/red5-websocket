@@ -30,9 +30,8 @@ public class Packet {
 	
     private final IoBuffer data;
     
-    private Packet(IoBuffer buffer) {
-    	this.data = buffer;
-    	data.flip();
+    private Packet(byte[] buf) {
+    	this.data = IoBuffer.wrap(buf);
     }
 
     /**
@@ -47,11 +46,21 @@ public class Packet {
     /**
      * Builds the packet which just wraps the IoBuffer.
      * 
+     * @param buf
+     * @return packet
+     */
+    public static Packet build(byte[] buf) {
+        return new Packet(buf);
+    }
+
+    /**
+     * Builds the packet which just wraps the IoBuffer.
+     * 
      * @param buffer
      * @return packet
      */
     public static Packet build(IoBuffer buffer) {
-        return new Packet(buffer);
+        return new Packet(buffer.array());
     }
         
 }

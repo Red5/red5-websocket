@@ -19,11 +19,13 @@
 package org.red5.net.websocket;
 
 import java.io.UnsupportedEncodingException;
+import java.util.Arrays;
 import java.util.Map;
 
 import org.apache.mina.core.buffer.IoBuffer;
 import org.apache.mina.core.session.IoSession;
 import org.red5.net.websocket.model.ConnectionType;
+import org.red5.net.websocket.model.Packet;
 import org.red5.net.websocket.util.IdGenerator;
 import org.red5.server.plugin.PluginRegistry;
 import org.slf4j.Logger;
@@ -206,16 +208,17 @@ public class WebSocketConnection {
 	 */
 	public void send(String data) throws UnsupportedEncodingException {
 		log.trace("send message: {}", data);
-		send(IoBuffer.wrap(data.getBytes()));
+		send(data.getBytes());
 	}
 
 	/**
 	 * sendmessage to client
 	 * @param buffer IoBuffer data
 	 */
-	public void send(IoBuffer buffer) {
-		log.trace("send buffer: {}", buffer);
-		session.write(buffer);
+	public void send(byte[] buf) {
+		log.trace("send buffer: {}", Arrays.toString(buf));
+		Packet packet = Packet.build(buf);
+		session.write(packet);
 	}
 
 	/**

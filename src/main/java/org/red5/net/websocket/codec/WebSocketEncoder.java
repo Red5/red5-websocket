@@ -26,6 +26,8 @@ import org.red5.net.websocket.Constants;
 import org.red5.net.websocket.WebSocketConnection;
 import org.red5.net.websocket.model.HandshakeResponse;
 import org.red5.net.websocket.model.Packet;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Encodes incoming buffers in a manner that makes the receiving client type transparent to the encoders further up in the filter chain. 
@@ -39,6 +41,8 @@ import org.red5.net.websocket.model.Packet;
  */
 public class WebSocketEncoder extends ProtocolEncoderAdapter {
 
+	private static final Logger log = LoggerFactory.getLogger(WebSocketEncoder.class);
+	
 	@Override
 	public void encode(IoSession session, Object message, ProtocolEncoderOutput out) throws Exception {
 		WebSocketConnection conn = (WebSocketConnection) session.getAttribute(Constants.CONNECTION);
@@ -58,9 +62,13 @@ public class WebSocketEncoder extends ProtocolEncoderAdapter {
 
 	// Encode the in buffer according to the Section 5.2. RFC 6455
 	private IoBuffer encodeOutgoingData(IoBuffer buf) {
+		log.debug("encode outgoing: {}", buf);
 		IoBuffer buffer = IoBuffer.allocate(buf.limit() + 2, false);
 		buffer.setAutoExpand(true);
-		buffer.put((byte) 0x82);
+		// if text
+		buffer.put((byte) 0x81);
+		// if binary
+		//buffer.put((byte) 0x82);		
 		if (buffer.capacity() <= 125) {
 			byte capacity = (byte) (buf.limit());
 			buffer.put(capacity);
