@@ -25,6 +25,7 @@ import java.util.Set;
 
 import org.red5.net.websocket.listener.DefaultWebSocketDataListener;
 import org.red5.net.websocket.listener.IWebSocketDataListener;
+import org.red5.server.api.IContext;
 import org.red5.server.api.scope.IScope;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -69,7 +70,8 @@ public class WebSocketScopeManager {
 		// add the name to the collection (no '/' prefix)
 		activeApplications.add(app);
 		// check the context for a predefined websocket scope
-		if (scope.getContext().hasBean("webSocketScope")) {
+		IContext ctx = scope.getContext();
+		if (ctx != null && ctx.hasBean("webSocketScope")) {
 			WebSocketScope wsScope = (WebSocketScope) scope.getContext().getBean("webSocketScope");
 			// add to scopes
 			scopes.put(String.format("/%s", app), wsScope);

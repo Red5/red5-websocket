@@ -159,7 +159,7 @@ public class WebSocketDecoder extends CumulativeProtocolDecoder {
         		// check for '?' or included query string
         		if (request[i].indexOf('?', start) > 0) {
         			end = request[i].indexOf('?', start);
-    				// parse any included query string
+    				// TODO parse any included query string
         			
         		}
 				String path = request[i].substring(start, end).trim();

@@ -24,6 +24,7 @@ import org.apache.mina.filter.codec.ProtocolEncoderAdapter;
 import org.apache.mina.filter.codec.ProtocolEncoderOutput;
 import org.red5.net.websocket.Constants;
 import org.red5.net.websocket.WebSocketConnection;
+import org.red5.net.websocket.model.HandshakeRequest;
 import org.red5.net.websocket.model.HandshakeResponse;
 import org.red5.net.websocket.model.Packet;
 import org.slf4j.Logger;
@@ -52,8 +53,11 @@ public class WebSocketEncoder extends ProtocolEncoderAdapter {
 			// if the connection is not native / direct, add websocket encoding
 			resultBuffer = conn.isWebConnection() ? encodeOutgoingData(packet) : packet.getData();
 		} else if (message instanceof HandshakeResponse) {
-			HandshakeResponse response = (HandshakeResponse) message;
-			resultBuffer = response.getResponse();
+			HandshakeResponse resp = (HandshakeResponse) message;
+			resultBuffer = resp.getResponse();
+		} else if (message instanceof HandshakeRequest) {
+			HandshakeRequest req = (HandshakeRequest) message;
+			resultBuffer = req.getRequest();
 		} else {
 			throw new Exception("message not a websocket type");
 		}
@@ -61,22 +65,44 @@ public class WebSocketEncoder extends ProtocolEncoderAdapter {
 	}
 
 	// Encode the in buffer according to the Section 5.2. RFC 6455
-	private IoBuffer encodeOutgoingData(Packet packet) {
+	public static IoBuffer encodeOutgoingData(Packet packet) {
 		log.debug("encode outgoing: {}", packet);
+		// get the payload data
 		IoBuffer data = packet.getData();
+		// get the frame length based on the byte count
 		int frameLen = data.limit(); 
+		// start with frame length + 2b (header info)
 		IoBuffer buffer = IoBuffer.allocate(frameLen + 2, false);
 		buffer.setAutoExpand(true);
 		// set the proper flags / opcode for the data
-		// if text
-		buffer.put((byte) 0x81);
-		// if binary
-		buffer.put((byte) 0x82);		
+		byte frameInfo = (byte) (1 << 7);
+		switch (packet.getType()) {
+			case TEXT:
+				frameInfo = (byte) (frameInfo | 1);
+				break;
+			case BINARY:
+				frameInfo = (byte) (frameInfo | 2);
+				break;
+			case CLOSE:
+				frameInfo = (byte) (frameInfo | 8);
+				break;
+			case CONTINUATION:
+				frameInfo = (byte) (frameInfo | 0);				
+				break;
+			case PING:
+				frameInfo = (byte) (frameInfo | 9);
+				break;
+			case PONG:
+				frameInfo = (byte) (frameInfo | 0xa);
+				break;
+			default:
+				break;
+		}
+		buffer.put(frameInfo);		
 		// set the frame length
-		if (buffer.capacity() <= 125) {
-			byte capacity = (byte) (frameLen);
-			buffer.put(capacity);
-		} else if (buffer.capacity() == 126) {
+		if (frameLen <= 125) {
+			buffer.put((byte) ((byte) frameLen & (byte) 0x7F));
+		} else if (frameLen == 126) {
 			buffer.put((byte) 126);
 			buffer.putShort((short) frameLen);
 		} else {

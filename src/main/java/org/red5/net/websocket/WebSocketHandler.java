@@ -20,9 +20,6 @@ package org.red5.net.websocket;
 
 import org.apache.mina.core.service.IoHandlerAdapter;
 import org.apache.mina.core.session.IoSession;
-import org.apache.mina.filter.codec.ProtocolCodecFactory;
-import org.apache.mina.filter.codec.ProtocolCodecFilter;
-import org.red5.net.websocket.codec.WebSocketCodecFactory;
 import org.red5.net.websocket.model.WSMessage;
 import org.red5.server.plugin.PluginRegistry;
 import org.slf4j.Logger;
@@ -39,17 +36,6 @@ import org.slf4j.LoggerFactory;
 public class WebSocketHandler extends IoHandlerAdapter {
 
 	private static final Logger log = LoggerFactory.getLogger(WebSocketHandler.class);
-
-	protected ProtocolCodecFactory codecFactory = new WebSocketCodecFactory();
-	
-	/** {@inheritDoc} */
-	@Override
-	public void sessionCreated(IoSession session) throws Exception {
-		log.trace("Session created");
-		// add protocol filter next
-		session.getFilterChain().addLast("protocolFilter", new ProtocolCodecFilter(codecFactory));
-		super.sessionCreated(session);
-	}	
 	
 	/**
 	 * {@inheritDoc}

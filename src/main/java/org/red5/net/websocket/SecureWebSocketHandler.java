@@ -17,7 +17,6 @@ import javax.net.ssl.SSLContext;
 
 import org.apache.mina.core.buffer.IoBuffer;
 import org.apache.mina.core.session.IoSession;
-import org.apache.mina.filter.codec.ProtocolCodecFilter;
 import org.apache.mina.filter.ssl.SslFilter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -64,9 +63,7 @@ public class SecureWebSocketHandler extends WebSocketHandler {
 		//create the ssl filter using server mode
 		SslFilter sslFilter = new SslFilter(context);
 		session.getFilterChain().addFirst("sslFilter", sslFilter);
-		// END OF NATIVE SSL STUFF	
-		// add protocol filter next
-		session.getFilterChain().addLast("protocolFilter", new ProtocolCodecFilter(codecFactory));
+		// END OF NATIVE SSL STUFF
 	}
 
 	/**

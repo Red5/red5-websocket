@@ -26,10 +26,12 @@ import java.util.Set;
 import java.util.concurrent.Executors;
 
 import org.apache.mina.core.service.IoHandlerAdapter;
+import org.apache.mina.filter.codec.ProtocolCodecFilter;
 import org.apache.mina.transport.socket.SocketAcceptor;
 import org.apache.mina.transport.socket.SocketSessionConfig;
 import org.apache.mina.transport.socket.nio.NioProcessor;
 import org.apache.mina.transport.socket.nio.NioSocketAcceptor;
+import org.red5.net.websocket.codec.WebSocketCodecFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.DisposableBean;
@@ -59,6 +61,8 @@ public class WebSocketTransport implements InitializingBean, DisposableBean {
 
 	private int port = 80;
 
+	private boolean secure;
+	
 	private Set<String> addresses = new HashSet<String>();
 
 	private IoHandlerAdapter ioHandler;
@@ -73,8 +77,14 @@ public class WebSocketTransport implements InitializingBean, DisposableBean {
 	@Override
 	public void afterPropertiesSet() throws Exception {
 		// instance the websocket handler
-		ioHandler = new WebSocketHandler();
+		if (secure) {
+			ioHandler = new SecureWebSocketHandler();			
+		} else {
+			ioHandler = new WebSocketHandler();
+		}
 		acceptor = new NioSocketAcceptor(Executors.newFixedThreadPool(connectionThreads), new NioProcessor(Executors.newFixedThreadPool(ioThreads)));
+		// add the websocket codec factory
+		acceptor.getFilterChain().addLast("protocol", new ProtocolCodecFilter(new WebSocketCodecFactory()));
 		// close sessions when the acceptor is stopped
 		acceptor.setCloseOnDeactivation(true);
 		acceptor.setHandler(ioHandler);
@@ -155,6 +165,14 @@ public class WebSocketTransport implements InitializingBean, DisposableBean {
 	 */
 	public void setIoThreads(int ioThreads) {
 		this.ioThreads = ioThreads;
+	}
+
+	public boolean isSecure() {
+		return secure;
+	}
+
+	public void setSecure(boolean secure) {
+		this.secure = secure;
 	}
 	
 }
