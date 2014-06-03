@@ -39,6 +39,8 @@ import org.red5.net.websocket.WebSocketPlugin;
 import org.red5.net.websocket.WebSocketScopeManager;
 import org.red5.net.websocket.model.ConnectionType;
 import org.red5.net.websocket.model.HandshakeResponse;
+import org.red5.net.websocket.model.MessageType;
+import org.red5.net.websocket.model.WSMessage;
 import org.red5.server.plugin.PluginRegistry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -73,12 +75,15 @@ public class WebSocketDecoder extends CumulativeProtocolDecoder {
 				// message is from a native socket. Simply wrap and pass through
 				resultBuffer = IoBuffer.wrap(in.array(), 0, in.limit());
 				in.position(in.limit());
+				out.write(resultBuffer);
 			}
 		} else if (conn.isWebConnection()) {
 			// there is incoming data from the websocket, decode and send to handler or next filter     
 			int startPos = in.position();
-			resultBuffer = decodeIncommingData(in, session);
-			if (resultBuffer == null) {
+			WSMessage message = decodeIncommingData(in, session);
+			if (message.isPayloadComplete()) {				
+				out.write(message);
+			} else {
 				// there was not enough data in the buffer to parse. Reset the in buffer position and wait for more data before trying again
 				in.position(startPos);
 				return false;
@@ -87,8 +92,8 @@ public class WebSocketDecoder extends CumulativeProtocolDecoder {
 			// session is known to be from a native socket. So simply wrap and pass through
 			resultBuffer = IoBuffer.wrap(in.array(), 0, in.limit());
 			in.position(in.limit());
+			out.write(resultBuffer);
 		}
-		out.write(resultBuffer);
 		return true;
 	}
 
@@ -224,7 +229,7 @@ public class WebSocketDecoder extends CumulativeProtocolDecoder {
 			throw new WebSocketException("Algorithm is missing");
 		}
 		// make up reply data...
-		IoBuffer buf = IoBuffer.allocate(302);
+		IoBuffer buf = IoBuffer.allocate(308);
 		buf.setAutoExpand(true);
 		buf.put("HTTP/1.1 101 Switching Protocols".getBytes());
 		buf.put(Constants.CRLF);
@@ -295,8 +300,8 @@ public class WebSocketDecoder extends CumulativeProtocolDecoder {
 	 * @param session
 	 * @return IoBuffer
 	 */
-	public static IoBuffer decodeIncommingData(IoBuffer in, IoSession session) {
-		IoBuffer resultBuffer = null;
+	public static WSMessage decodeIncommingData(IoBuffer in, IoSession session) {
+		WSMessage result = new WSMessage();
 		do {
 			byte frameInfo = in.get();
 			// get FIN (1 bit)
@@ -309,23 +314,29 @@ public class WebSocketDecoder extends CumulativeProtocolDecoder {
 			// opcodes 3-7 and b-f are reserved for non-control frames
 			switch (opCode) {
 				case 0: // continuation
-					
+					result.setMessageType(MessageType.CONTINUATION);
 					break;
 				case 1: // text
-					
+					result.setMessageType(MessageType.TEXT);
 					break;
 				case 2: // binary
-					
+					result.setMessageType(MessageType.BINARY);					
 					break;
 				case 9: // ping
 					log.trace("PING");
+					result.setMessageType(MessageType.PING);
+					// TODO should send back a PONG
+					
 					break;
 				case 0xa: // pong
 					log.trace("PONG");					
+					result.setMessageType(MessageType.PONG);
 					break;
 				case 8: // close
+					result.setMessageType(MessageType.CLOSE);
+					// close the session without delay
 					session.close(true);
-					return resultBuffer;				
+					return result;				
 				default:
 					log.info("Unhandled opcode: {}", opCode);					
 			}
@@ -373,13 +384,8 @@ public class WebSocketDecoder extends CumulativeProtocolDecoder {
     				byte maskedByte = in.get();
     				unMaskedPayLoad[i] = (byte) (maskedByte ^ maskKey[i % 4]);
     			}
-    			if (resultBuffer == null) {
-    				resultBuffer = IoBuffer.wrap(unMaskedPayLoad);
-    				resultBuffer.position(resultBuffer.limit());
-    				resultBuffer.setAutoExpand(true);
-    			} else {
-    				resultBuffer.put(unMaskedPayLoad);
-    			}				
+    			// add the payload
+    			result.addPayload(unMaskedPayLoad);
 			} else {
 				// Validate if we have enough data in the buffer to completely parse the WebSocket DataFrame. If not return null.
 				if (frameLen > in.remaining()) {
@@ -388,17 +394,12 @@ public class WebSocketDecoder extends CumulativeProtocolDecoder {
 				}
 				byte[] payLoad = new byte[frameLen];
     			in.get(payLoad);
-				if (resultBuffer == null) {
-					resultBuffer = IoBuffer.wrap(payLoad);
-    				resultBuffer.position(resultBuffer.limit());
-    				resultBuffer.setAutoExpand(true);
-				} else {
-					resultBuffer.put(payLoad);
-				}
+    			// add the payload
+    			result.addPayload(payLoad);
 			}
 		} while (in.hasRemaining());
-		resultBuffer.flip();
-		return resultBuffer;
+		result.setPayloadComplete();
+		return result;
 	}
 	
 }

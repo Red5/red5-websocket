@@ -22,10 +22,11 @@ import java.io.UnsupportedEncodingException;
 import java.util.Arrays;
 import java.util.Map;
 
-import org.apache.mina.core.buffer.IoBuffer;
 import org.apache.mina.core.session.IoSession;
 import org.red5.net.websocket.model.ConnectionType;
+import org.red5.net.websocket.model.MessageType;
 import org.red5.net.websocket.model.Packet;
+import org.red5.net.websocket.model.WSMessage;
 import org.red5.net.websocket.util.IdGenerator;
 import org.red5.server.plugin.PluginRegistry;
 import org.slf4j.Logger;
@@ -190,7 +191,7 @@ public class WebSocketConnection {
 	 * 
 	 * @param message
 	 */
-	public void receive(IoBuffer message) {
+	public void receive(WSMessage message) {
 		log.trace("receive message");
 		if (isConnected()) {
 			WebSocketScopeManager manager = ((WebSocketPlugin) PluginRegistry.getPlugin("WebSocketPlugin")).getManager();
@@ -202,23 +203,37 @@ public class WebSocketConnection {
 	}
 	
 	/**
-	 * sendmessage to client
+	 * Sends text to the client.
+	 * 
 	 * @param data string data
 	 * @throws UnsupportedEncodingException 
 	 */
 	public void send(String data) throws UnsupportedEncodingException {
 		log.trace("send message: {}", data);
-		send(data.getBytes());
+		Packet packet = Packet.build(data.getBytes(), MessageType.TEXT);
+		session.write(packet);
 	}
 
 	/**
-	 * sendmessage to client
-	 * @param buffer IoBuffer data
+	 * Sends binary data to the client.
+	 * 
+	 * @param buf
 	 */
 	public void send(byte[] buf) {
-		log.trace("send buffer: {}", Arrays.toString(buf));
+		log.trace("send binary: {}", Arrays.toString(buf));
 		Packet packet = Packet.build(buf);
 		session.write(packet);
+	}
+	
+	/**
+	 * Sends a pong back to the client; normally in response to a ping.
+	 * 
+	 * @param buf
+	 */
+	public void sendPong(byte[] buf) {
+		log.trace("send pong: {}", buf);
+		Packet packet = Packet.build(buf, MessageType.PONG);
+		session.write(packet);		
 	}
 
 	/**

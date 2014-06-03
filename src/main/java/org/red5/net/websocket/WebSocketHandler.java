@@ -18,12 +18,12 @@
 
 package org.red5.net.websocket;
 
-import org.apache.mina.core.buffer.IoBuffer;
 import org.apache.mina.core.service.IoHandlerAdapter;
 import org.apache.mina.core.session.IoSession;
 import org.apache.mina.filter.codec.ProtocolCodecFactory;
 import org.apache.mina.filter.codec.ProtocolCodecFilter;
 import org.red5.net.websocket.codec.WebSocketCodecFactory;
+import org.red5.net.websocket.model.WSMessage;
 import org.red5.server.plugin.PluginRegistry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -57,10 +57,10 @@ public class WebSocketHandler extends IoHandlerAdapter {
 	@Override
 	public void messageReceived(IoSession session, Object message) throws Exception {
 		log.trace("Message received on session: {}", session.getId());
-		if (message instanceof IoBuffer) {
+		if (message instanceof WSMessage) {
 			WebSocketConnection conn = (WebSocketConnection) session.getAttribute("connection");
 			if (conn != null) {
-				conn.receive((IoBuffer) message);
+				conn.receive((WSMessage) message);
 			}
 		}
 	}

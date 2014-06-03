@@ -50,7 +50,7 @@ public class WebSocketEncoder extends ProtocolEncoderAdapter {
 		if (message instanceof Packet) {
 			Packet packet = (Packet) message;
 			// if the connection is not native / direct, add websocket encoding
-			resultBuffer = conn.isWebConnection() ? encodeOutgoingData(packet.getData()) : packet.getData();
+			resultBuffer = conn.isWebConnection() ? encodeOutgoingData(packet) : packet.getData();
 		} else if (message instanceof HandshakeResponse) {
 			HandshakeResponse response = (HandshakeResponse) message;
 			resultBuffer = response.getResponse();
@@ -61,25 +61,29 @@ public class WebSocketEncoder extends ProtocolEncoderAdapter {
 	}
 
 	// Encode the in buffer according to the Section 5.2. RFC 6455
-	private IoBuffer encodeOutgoingData(IoBuffer buf) {
-		log.debug("encode outgoing: {}", buf);
-		IoBuffer buffer = IoBuffer.allocate(buf.limit() + 2, false);
+	private IoBuffer encodeOutgoingData(Packet packet) {
+		log.debug("encode outgoing: {}", packet);
+		IoBuffer data = packet.getData();
+		int frameLen = data.limit(); 
+		IoBuffer buffer = IoBuffer.allocate(frameLen + 2, false);
 		buffer.setAutoExpand(true);
+		// set the proper flags / opcode for the data
 		// if text
 		buffer.put((byte) 0x81);
 		// if binary
-		//buffer.put((byte) 0x82);		
+		buffer.put((byte) 0x82);		
+		// set the frame length
 		if (buffer.capacity() <= 125) {
-			byte capacity = (byte) (buf.limit());
+			byte capacity = (byte) (frameLen);
 			buffer.put(capacity);
 		} else if (buffer.capacity() == 126) {
 			buffer.put((byte) 126);
-			buffer.putShort((short) buf.limit());
+			buffer.putShort((short) frameLen);
 		} else {
 			buffer.put((byte) 127);
-			buffer.putLong((int) buf.limit());
+			buffer.putLong((int) frameLen);
 		}
-		buffer.put(buf);
+		buffer.put(data);
 		buffer.flip();
 		return buffer;
 	}

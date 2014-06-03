@@ -27,6 +27,8 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.red5.net.websocket.codec.WebSocketDecoder;
+import org.red5.net.websocket.model.MessageType;
+import org.red5.net.websocket.model.WSMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -100,9 +102,9 @@ public class WebSocketServerTest {
 		// masked
 		IoBuffer in = IoBuffer.wrap(new byte[] {(byte) 0x81, (byte) 0x85, (byte) 0x37, (byte) 0xfa, (byte) 0x21, (byte) 0x3d, (byte) 0x7f, (byte) 0x9f, (byte) 0x4d, (byte) 0x51, (byte) 0x58});
 		// get results
-		IoBuffer result = WebSocketDecoder.decodeIncommingData(in, null);		
-		log.error("Result: {}", (result != null ? new String(result.array()) : result));	
-		Assert.assertEquals("Hello", new String(result.array()));
+		WSMessage result = WebSocketDecoder.decodeIncommingData(in, null);		
+		Assert.assertTrue(result.getMessageType() == MessageType.TEXT);
+		Assert.assertEquals("Hello", result.getMessageAsString());
 		log.info("testMasked exit");
 	}
 	
@@ -112,9 +114,9 @@ public class WebSocketServerTest {
 		// unmasked
 		IoBuffer in = IoBuffer.wrap(new byte[] {(byte) 0x81, (byte) 0x05, (byte) 0x48, (byte) 0x65, (byte) 0x6c, (byte) 0x6c, (byte) 0x6f});
 		// get results
-		IoBuffer result = WebSocketDecoder.decodeIncommingData(in, null);		
-		log.error("Result: {}", (result != null ? new String(result.array()) : result));	
-		Assert.assertEquals("Hello", new String(result.array()));
+		WSMessage result = WebSocketDecoder.decodeIncommingData(in, null);		
+		Assert.assertTrue(result.getMessageType() == MessageType.TEXT);
+		Assert.assertEquals("Hello", result.getMessageAsString());
 		log.info("testUnmasked exit");
 	}
 	
@@ -124,9 +126,8 @@ public class WebSocketServerTest {
 		// fragmented
 		IoBuffer in = IoBuffer.wrap(new byte[] {(byte) 0x01, (byte) 0x03, (byte) 0x48, (byte) 0x65, (byte) 0x6c, (byte) 0x80, (byte) 0x02, (byte) 0x6c, (byte) 0x6f});
 		// get results
-		IoBuffer result = WebSocketDecoder.decodeIncommingData(in, null);		
-		log.error("Result: {}", (result != null ? new String(result.array()) : result));	
-		Assert.assertEquals("Hello", new String(result.array()).trim());
+		WSMessage result = WebSocketDecoder.decodeIncommingData(in, null);		
+		Assert.assertEquals("Hello", result.getMessageAsString());
 		log.info("testFragmented exit");
 	}
 
@@ -136,9 +137,9 @@ public class WebSocketServerTest {
 		// unmasked ping
 		IoBuffer in = IoBuffer.wrap(new byte[] {(byte) 0x89, (byte) 0x05, (byte) 0x48, (byte) 0x65, (byte) 0x6c, (byte) 0x6c, (byte) 0x6f});
 		// get results
-		IoBuffer result = WebSocketDecoder.decodeIncommingData(in, null);		
-		log.error("Result: {}", (result != null ? new String(result.array()) : result));	
-		Assert.assertEquals("Hello", new String(result.array()));
+		WSMessage result = WebSocketDecoder.decodeIncommingData(in, null);		
+		Assert.assertTrue(result.getMessageType() == MessageType.PING);
+		Assert.assertEquals("Hello", result.getMessageAsString());
 		log.info("testUnmaskedPing exit");
 	}
 
@@ -148,9 +149,9 @@ public class WebSocketServerTest {
 		// masked pong
 		IoBuffer in = IoBuffer.wrap(new byte[] {(byte) 0x8a, (byte) 0x85, (byte) 0x37, (byte) 0xfa, (byte) 0x21, (byte) 0x3d, (byte) 0x7f, (byte) 0x9f, (byte) 0x4d, (byte) 0x51, (byte) 0x58});
 		// get results
-		IoBuffer result = WebSocketDecoder.decodeIncommingData(in, null);		
-		log.error("Result: {}", (result != null ? new String(result.array()) : result));	
-		Assert.assertEquals("Hello", new String(result.array()));
+		WSMessage result = WebSocketDecoder.decodeIncommingData(in, null);		
+		Assert.assertTrue(result.getMessageType() == MessageType.PONG);
+		Assert.assertEquals("Hello", result.getMessageAsString());
 		log.info("testMaskedPong exit");
 	}
 	

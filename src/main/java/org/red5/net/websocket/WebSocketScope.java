@@ -21,8 +21,8 @@ package org.red5.net.websocket;
 import java.util.HashSet;
 import java.util.Set;
 
-import org.apache.mina.core.buffer.IoBuffer;
 import org.red5.net.websocket.listener.IWebSocketDataListener;
+import org.red5.net.websocket.model.WSMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -108,13 +108,13 @@ public class WebSocketScope {
 	/**
 	 * Message received from client
 	 * 
-	 * @param buffer
+	 * @param message
 	 */
-	public void onMessage(IoBuffer buffer) {
+	public void onMessage(WSMessage message) {
 		log.trace("Listeners: {}", listeners.size());
 		for (IWebSocketDataListener listener : listeners) {
 			try {
-				listener.onWSMessage(buffer);
+				listener.onWSMessage(message);
 			} catch (Exception e) {
 				log.warn("onMessage exception", e);
 			}

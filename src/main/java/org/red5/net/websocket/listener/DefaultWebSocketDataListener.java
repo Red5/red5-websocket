@@ -21,11 +21,11 @@ package org.red5.net.websocket.listener;
 import java.io.UnsupportedEncodingException;
 import java.util.Set;
 
-import org.apache.mina.core.buffer.IoBuffer;
 import org.red5.net.websocket.WebSocketConnection;
 import org.red5.net.websocket.WebSocketPlugin;
 import org.red5.net.websocket.WebSocketScope;
 import org.red5.net.websocket.WebSocketScopeManager;
+import org.red5.net.websocket.model.WSMessage;
 import org.red5.server.api.scope.IScope;
 import org.red5.server.plugin.PluginRegistry;
 import org.slf4j.Logger;
@@ -55,8 +55,9 @@ public class DefaultWebSocketDataListener extends WebSocketDataListener {
 	}
 
 	@Override
-	public void onWSMessage(IoBuffer message) {
-		String msg = new String(message.array());
+	public void onWSMessage(WSMessage message) {
+		// assume we have text
+		String msg = new String(message.getPayload().array());
 		log.info("onWSMessage: {}", msg);
 		// just echo back the message
 		WebSocketScopeManager manager = ((WebSocketPlugin) PluginRegistry.getPlugin("WebSocketPlugin")).getManager();

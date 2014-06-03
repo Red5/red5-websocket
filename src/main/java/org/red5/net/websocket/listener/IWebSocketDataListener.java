@@ -18,8 +18,8 @@
 
 package org.red5.net.websocket.listener;
 
-import org.apache.mina.core.buffer.IoBuffer;
 import org.red5.net.websocket.WebSocketConnection;
+import org.red5.net.websocket.model.WSMessage;
 
 /**
  * Listener for WebSocket events.
@@ -36,7 +36,7 @@ public interface IWebSocketDataListener {
 	 * 
 	 * @param message
 	 */
-	public void onWSMessage(IoBuffer message);
+	public void onWSMessage(WSMessage message);
 
 	/**
 	 * Connect a WebSocket client.
