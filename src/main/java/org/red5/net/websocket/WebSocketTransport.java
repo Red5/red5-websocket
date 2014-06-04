@@ -25,8 +25,11 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.Executors;
 
+import org.apache.mina.core.filterchain.DefaultIoFilterChainBuilder;
 import org.apache.mina.core.service.IoHandlerAdapter;
 import org.apache.mina.filter.codec.ProtocolCodecFilter;
+import org.apache.mina.filter.logging.LoggingFilter;
+import org.apache.mina.filter.ssl.SslFilter;
 import org.apache.mina.transport.socket.SocketAcceptor;
 import org.apache.mina.transport.socket.SocketSessionConfig;
 import org.apache.mina.transport.socket.nio.NioProcessor;
@@ -60,14 +63,14 @@ public class WebSocketTransport implements InitializingBean, DisposableBean {
 	private int ioThreads = 16;
 
 	private int port = 80;
-
-	private boolean secure;
 	
 	private Set<String> addresses = new HashSet<String>();
 
 	private IoHandlerAdapter ioHandler;
 
 	private SocketAcceptor acceptor;
+	
+	private SecureWebSocketConfiguration secureConfig;
 
 	/**
 	 * Creates the i/o handler and nio acceptor; ports and addresses are bound.
@@ -76,15 +79,24 @@ public class WebSocketTransport implements InitializingBean, DisposableBean {
 	 */
 	@Override
 	public void afterPropertiesSet() throws Exception {
-		// instance the websocket handler
-		if (secure) {
-			ioHandler = new SecureWebSocketHandler();			
-		} else {
-			ioHandler = new WebSocketHandler();
-		}
+		// create the nio acceptor
 		acceptor = new NioSocketAcceptor(Executors.newFixedThreadPool(connectionThreads), new NioProcessor(Executors.newFixedThreadPool(ioThreads)));
+		// instance the websocket handler
+		if (ioHandler == null) {
+   			ioHandler = new WebSocketHandler();
+		}
+		log.trace("I/O handler: {}", ioHandler);	
+		DefaultIoFilterChainBuilder chain = acceptor.getFilterChain();
+		// if handling wss init the config
+		if (secureConfig != null) {
+			SslFilter sslFilter = secureConfig.getSslFilter();
+			chain.addFirst("sslFilter", sslFilter);
+		}
+		if (log.isTraceEnabled()) {
+			chain.addLast("logger", new LoggingFilter());
+		}
 		// add the websocket codec factory
-		acceptor.getFilterChain().addLast("protocol", new ProtocolCodecFilter(new WebSocketCodecFactory()));
+		chain.addLast("protocol", new ProtocolCodecFilter(new WebSocketCodecFactory()));
 		// close sessions when the acceptor is stopped
 		acceptor.setCloseOnDeactivation(true);
 		acceptor.setHandler(ioHandler);
@@ -113,15 +125,15 @@ public class WebSocketTransport implements InitializingBean, DisposableBean {
 				log.error("Exception occurred during resolve / bind", e);
 			}			
 		}
-		log.info("started websocket transport");
+		log.info("started {} websocket transport", (isSecure() ? "secure" : ""));
 	}
 
 	/**
 	 * Ports and addresses are unbound (stop listening).
 	 */
 	@Override
-	public void destroy() throws Exception {
-		log.info("stop web socket");
+	public void destroy() throws Exception {		
+		log.info("stopped {} websocket transport", (isSecure() ? "secure" : ""));
 		acceptor.unbind();
 	}	
 	
@@ -168,11 +180,15 @@ public class WebSocketTransport implements InitializingBean, DisposableBean {
 	}
 
 	public boolean isSecure() {
-		return secure;
+		return secureConfig != null;
 	}
 
-	public void setSecure(boolean secure) {
-		this.secure = secure;
+	public void setIoHandler(IoHandlerAdapter ioHandler) {
+		this.ioHandler = ioHandler;
+	}
+
+	public void setSecureConfig(SecureWebSocketConfiguration secureConfig) {
+		this.secureConfig = secureConfig;
 	}
 	
 }

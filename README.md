@@ -25,12 +25,32 @@ To bind to one or many IP addresses and ports:
 </bean>
 ```
 
-If you don't want to specify the IP to bind to:
+If you don't want to specify the IP:
 ```
 <bean id="webSocketTransport" class="org.red5.net.websocket.WebSocketTransport">
 	<property name="port" value="8080"/>
 </bean>
 
+```
+To support secure communication (wss) add this:
+
+```
+    <bean id="webSocketTransportSecure" class="org.red5.net.websocket.WebSocketTransport">
+        <property name="secureConfig">
+            <bean id="webSocketSecureConfig" class="org.red5.net.websocket.SecureWebSocketConfiguration">
+                <property name="keystoreType" value="JKS"/>
+                <property name="keystoreFile" value="conf/keystore"/>
+                <property name="keystorePassword" value="password"/>
+                <property name="truststoreFile" value="conf/truststore"/>
+                <property name="truststorePassword" value="password"/>
+            </bean>
+        </property>
+        <property name="addresses">
+            <list>
+                <value>192.168.1.174:10081</value>
+            </list>
+        </property>
+    </bean>
 ```
 
 Adding WebSocket to an Application

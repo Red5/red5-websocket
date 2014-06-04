@@ -104,6 +104,10 @@ public class WebSocketDecoder extends CumulativeProtocolDecoder {
 	private boolean doHandShake(IoSession session, IoBuffer in) {
 		// create the connection obj
 		WebSocketConnection conn = new WebSocketConnection(session);
+		// mark as secure if using ssl
+		if (session.getFilterChain().contains("sslFilter")) {
+			conn.setSecure(true);
+		}
 		try {
 			Map<String, String> headers = parseClientRequest(conn, new String(in.array()));
 	        log.warn("Header map: {}", headers);			
@@ -237,18 +241,18 @@ public class WebSocketDecoder extends CumulativeProtocolDecoder {
 		buf.put(Constants.CRLF);
 		buf.put("Connection: Upgrade".getBytes());
 		buf.put(Constants.CRLF);
-		buf.put(("Sec-WebSocket-Origin: " + conn.getOrigin()).getBytes());
+		buf.put("Server: Red5".getBytes());
+		buf.put(Constants.CRLF);
+		buf.put("Sec-WebSocket-Version-Server: 13".getBytes());
+		buf.put(Constants.CRLF);
+		buf.put(String.format("Sec-WebSocket-Origin: %s", conn.getOrigin()).getBytes());
 		buf.put(Constants.CRLF);
 		buf.put(String.format("Sec-WebSocket-Location: %s", conn.getHost()).getBytes());
 		buf.put(Constants.CRLF);
 		buf.put(String.format("Sec-WebSocket-Accept: %s", new String(accept)).getBytes());
 		buf.put(Constants.CRLF);
-		buf.put("Sec-WebSocket-Version-Server: 13".getBytes());
 		buf.put(Constants.CRLF);
-		buf.put("Server: Red5".getBytes());
-		buf.put(Constants.CRLF);
-		buf.put(Constants.CRLF);
-		buf.put(accept);
+		//buf.put(accept);
 		log.trace("Handshake response size: {}", buf.limit());
 		return new HandshakeResponse(buf);
 	}
@@ -301,6 +305,7 @@ public class WebSocketDecoder extends CumulativeProtocolDecoder {
 	 * @return IoBuffer
 	 */
 	public static WSMessage decodeIncommingData(IoBuffer in, IoSession session) {
+		log.trace("Decoding: {}", in);
 		WSMessage result = new WSMessage();
 		do {
 			byte frameInfo = in.get();

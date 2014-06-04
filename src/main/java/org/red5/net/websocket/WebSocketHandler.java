@@ -36,7 +36,7 @@ import org.slf4j.LoggerFactory;
 public class WebSocketHandler extends IoHandlerAdapter {
 
 	private static final Logger log = LoggerFactory.getLogger(WebSocketHandler.class);
-	
+
 	/**
 	 * {@inheritDoc}
 	 */
@@ -57,7 +57,7 @@ public class WebSocketHandler extends IoHandlerAdapter {
 	@Override
     public void messageSent(IoSession session, Object message) throws Exception {
 		log.trace("Message sent on session: {}", session.getId());
-    	
+		log.trace("Session read: {} write: {}", session.getReadBytes(), session.getWrittenBytes());
     }
 	
 	/**

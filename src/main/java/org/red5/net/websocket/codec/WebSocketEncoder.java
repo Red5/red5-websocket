@@ -78,9 +78,11 @@ public class WebSocketEncoder extends ProtocolEncoderAdapter {
 		byte frameInfo = (byte) (1 << 7);
 		switch (packet.getType()) {
 			case TEXT:
+				log.trace("Encoding text frame");
 				frameInfo = (byte) (frameInfo | 1);
 				break;
 			case BINARY:
+				log.trace("Encoding binary frame");
 				frameInfo = (byte) (frameInfo | 2);
 				break;
 			case CLOSE:
@@ -102,7 +104,7 @@ public class WebSocketEncoder extends ProtocolEncoderAdapter {
 		// set the frame length
 		if (frameLen <= 125) {
 			buffer.put((byte) ((byte) frameLen & (byte) 0x7F));
-		} else if (frameLen == 126) {
+		} else if (frameLen > 125 && frameLen <= 65535) {
 			buffer.put((byte) 126);
 			buffer.putShort((short) frameLen);
 		} else {
@@ -111,6 +113,7 @@ public class WebSocketEncoder extends ProtocolEncoderAdapter {
 		}
 		buffer.put(data);
 		buffer.flip();
+		log.trace("Encoded: {}", buffer);
 		return buffer;
 	}
 
