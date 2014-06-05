@@ -67,7 +67,6 @@ public class WebSocketScopeManager {
 	 * @param scope the application scope
 	 */
 	public void addApplication(IScope scope) {
-		log.info("This manager: {}", this);
 		String app = scope.getName();
 		// add the name to the collection (no '/' prefix)
 		activeApplications.add(app);

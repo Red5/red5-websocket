@@ -21,7 +21,6 @@ package org.red5.net.websocket;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 
 import org.red5.net.websocket.listener.IWebSocketDataListener;
@@ -132,10 +131,9 @@ public class WebSocketScope {
 	 * 
 	 * @param listenerList list of IWebSocketDataListener
 	 */	
-	@SuppressWarnings("unchecked")
-	public void setListeners(List<?> c) {
-		log.debug("setListeners: {}", c);
-		listeners.addAll((Collection) c);
+	public void setListeners(Collection<IWebSocketDataListener> listeners) {
+		log.trace("setListeners: {}", listeners);
+		this.listeners.addAll(listeners);
 	}
 
 	/**
