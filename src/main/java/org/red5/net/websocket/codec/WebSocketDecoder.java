@@ -82,6 +82,9 @@ public class WebSocketDecoder extends CumulativeProtocolDecoder {
 			int startPos = in.position();
 			WSMessage message = decodeIncommingData(in, session);
 			if (message.isPayloadComplete()) {
+				// set the connections path on the message
+				message.setPath(conn.getPath());
+				// write the message
 				out.write(message);
 			} else {
 				// there was not enough data in the buffer to parse. Reset the in buffer position and wait for more data before trying again

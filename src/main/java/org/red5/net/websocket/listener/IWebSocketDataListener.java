@@ -25,12 +25,21 @@ import org.red5.net.websocket.model.WSMessage;
  * Listener for WebSocket events.
  */
 public interface IWebSocketDataListener {
-	
-	/**
-	 * @return path of the scope
-	 */
-	public String getPath();
 
+	/**
+	 * Returns the protocol for which this listener is interested.
+	 * 
+	 * @return protocol
+	 */
+	public String getProtocol();
+
+	/**
+	 * Sets the protocol for which this listener is interested.
+	 * 
+	 * @param protocol
+	 */	
+	public void setProtocol(String protocol);
+	
 	/**
 	 * Dispatch message.
 	 * 

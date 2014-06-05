@@ -3,9 +3,11 @@ red5-websocket
 
 Websocket plug-in for Red5
 
-This plugin is meant to provide websocket access to applications running in red5. Special thanks to Takahiko Toda (poepoemix@hotmail.com) for the initial code that we started with. The latest code has a rewritten handshake routine which compiles with rfc6455.
+This plugin is meant to provide websocket functionality for applications running in red5. The code is constructed to comply with rfc6455.
 
 http://tools.ietf.org/html/rfc6455
+
+Special thanks to Takahiko Toda and Dhruv Chopra for the initial ideas and source.
 
 Configuration
 --------------

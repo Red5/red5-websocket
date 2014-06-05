@@ -15,6 +15,9 @@ public class WSMessage {
 	
 	private IoBuffer payload;
 	
+	// the path on which this message originated
+	private String path;
+	
 	private long timeStamp = System.currentTimeMillis();
 
 	private boolean payloadComplete;
@@ -92,9 +95,17 @@ public class WSMessage {
 		return timeStamp;
 	}
 
+	public String getPath() {
+		return path;
+	}
+
+	public void setPath(String path) {
+		this.path = path;
+	}
+
 	@Override
 	public String toString() {
-		return "WSMessage [messageType=" + messageType + ", payload=" + payload + "]";
+		return "WSMessage [messageType=" + messageType + ", timeStamp=" + timeStamp + ", path=" + path + ", payload=" + payload + "]";
 	}
 	
 }

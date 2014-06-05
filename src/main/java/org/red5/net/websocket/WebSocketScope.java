@@ -18,11 +18,15 @@
 
 package org.red5.net.websocket;
 
+import java.util.Collection;
+import java.util.Collections;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 import org.red5.net.websocket.listener.IWebSocketDataListener;
 import org.red5.net.websocket.model.WSMessage;
+import org.red5.server.plugin.PluginRegistry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -37,27 +41,51 @@ public class WebSocketScope {
 	private Set<IWebSocketDataListener> listeners = new HashSet<IWebSocketDataListener>();
 
 	/**
-	 * get the set of connections
-	 * @return the conns
+	 * Registers with the WebSocketScopeManager.
+	 */
+	public void register() {
+		WebSocketScopeManager manager = ((WebSocketPlugin) PluginRegistry.getPlugin("WebSocketPlugin")).getManager();
+		manager.addWebSocketScope(this);
+	}
+	
+	/**
+	 * Un-registers from the WebSocketScopeManager.
+	 */
+	public void unregister() {
+		WebSocketScopeManager manager = ((WebSocketPlugin) PluginRegistry.getPlugin("WebSocketPlugin")).getManager();
+		manager.removeWebSocketScope(this);		
+	}
+	
+	/**
+	 * Returns the set of connections.
+	 * 
+	 * @return conns
 	 */
 	public Set<WebSocketConnection> getConns() {
 		return conns;
 	}
 
+	/**
+	 * Sets the path.
+	 * 
+	 * @param path
+	 */
 	public void setPath(String path) {
 		this.path = path; // /room/name
 	}
-
+	
 	/**
-	 * get the path info of scope
-	 * @return path data.
+	 * Returns the path of the scope.
+	 * 
+	 * @return path
 	 */
 	public String getPath() {
 		return path;
 	}
 
 	/**
-	 * add new connection on scope
+	 * Add new connection on scope.
+	 * 
 	 * @param conn WebSocketConnection
 	 */
 	public void addConnection(WebSocketConnection conn) {
@@ -68,7 +96,8 @@ public class WebSocketScope {
 	}
 
 	/**
-	 * remove connection from scope
+	 * Remove connection from scope.
+	 * 
 	 * @param conn WebSocketConnection
 	 */
 	public void removeConnection(WebSocketConnection conn) {
@@ -79,23 +108,45 @@ public class WebSocketScope {
 	}
 
 	/**
-	 * add new listener on scope
+	 * Add new listener on scope.
+	 * 
 	 * @param listener IWebSocketDataListener
 	 */
 	public void addListener(IWebSocketDataListener listener) {
-		log.info("addListener: {}", listener.getPath());
+		log.info("addListener: {}", listener);
 		listeners.add(listener);
 	}
 
 	/**
-	 * remove listener from scope
+	 * Remove listener from scope.
+	 * 
 	 * @param listener IWebSocketDataListener
 	 */
 	public void removeListener(IWebSocketDataListener listener) {
-		log.info("removeListener: {}", listener.getPath());
+		log.info("removeListener: {}", listener);
 		listeners.remove(listener);
 	}
+	
+	/**
+	 * Add new listeners on scope.
+	 * 
+	 * @param listenerList list of IWebSocketDataListener
+	 */	
+	@SuppressWarnings("unchecked")
+	public void setListeners(List<?> c) {
+		log.debug("setListeners: {}", c);
+		listeners.addAll((Collection) c);
+	}
 
+	/**
+	 * Returns the listeners in an unmodifiable set.
+	 * 
+	 * @return listeners
+	 */
+	public Set<IWebSocketDataListener> getListeners() {
+		return Collections.unmodifiableSet(listeners);
+	}
+	
 	/**
 	 * Check the scope state.
 	 * 
@@ -106,7 +157,7 @@ public class WebSocketScope {
 	}
 
 	/**
-	 * Message received from client
+	 * Message received from client and passed on to the listeners.
 	 * 
 	 * @param message
 	 */
@@ -148,7 +199,7 @@ public class WebSocketScope {
 
 	@Override
 	public String toString() {
-		return "WebSocketScope [path=" + path + "]";
+		return "WebSocketScope [path=" + path + ", listeners=" + listeners.size()  + ", connections=" + conns.size() + "]";
 	}
 	
 }

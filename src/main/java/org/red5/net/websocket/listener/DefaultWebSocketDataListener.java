@@ -26,7 +26,6 @@ import org.red5.net.websocket.WebSocketPlugin;
 import org.red5.net.websocket.WebSocketScope;
 import org.red5.net.websocket.WebSocketScopeManager;
 import org.red5.net.websocket.model.WSMessage;
-import org.red5.server.api.scope.IScope;
 import org.red5.server.plugin.PluginRegistry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -39,10 +38,6 @@ import org.slf4j.LoggerFactory;
 public class DefaultWebSocketDataListener extends WebSocketDataListener {
 
 	private static final Logger log = LoggerFactory.getLogger(DefaultWebSocketDataListener.class);
-	
-	public DefaultWebSocketDataListener(IScope scope) {
-		super(scope);
-	}
 
 	@Override
 	public void onWSConnect(WebSocketConnection conn) {
@@ -61,7 +56,7 @@ public class DefaultWebSocketDataListener extends WebSocketDataListener {
 		log.info("onWSMessage: {}", msg);
 		// just echo back the message
 		WebSocketScopeManager manager = ((WebSocketPlugin) PluginRegistry.getPlugin("WebSocketPlugin")).getManager();
-		WebSocketScope scope = manager.getScope(path);
+		WebSocketScope scope = manager.getScope(message.getPath());
 		Set<WebSocketConnection> conns = scope.getConns();
 		for (WebSocketConnection conn : conns) {
 			log.debug("Echoing to {}", conn);

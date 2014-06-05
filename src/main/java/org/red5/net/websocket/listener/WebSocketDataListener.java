@@ -18,67 +18,29 @@
 
 package org.red5.net.websocket.listener;
 
-import org.red5.server.api.scope.IScope;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
- * Adapter class for WebSocket data listener.
+ * Adapter class for WebSocket data listener interface.
  * 
- * @author Toda Takahiko
+ * @author Paul Gregoire
  */
 public abstract class WebSocketDataListener implements IWebSocketDataListener {
-	
-	private static final Logger log = LoggerFactory.getLogger(WebSocketDataListener.class);
-	
-	protected String fullPath;
-	
-	protected String path;
 
 	/**
-	 * constructor with scope input.
-	 * <pre>
-	 * to make default path.
-	 * </pre>
+	 * The protocol which this listener is interested in handling.
 	 */
-	public WebSocketDataListener(IScope scope) {
-		fullPath = String.format("%s/%s", scope.getPath(), scope.getName());
-		log.debug("WebSocketDataListener: {}", fullPath);
-		this.path = String.format("/%s", scope.getName());
-		log.debug("Path: {}", path);
+	protected String protocol;
+
+	/** {@inheritDoc} */
+	@Override
+	public String getProtocol() {
+		return protocol;
 	}
 
-	/**
-	 * {@inheritDoc}
-	 */
+	/** {@inheritDoc} */
 	@Override
-	public String getPath() {
-		return path;
-	}
-
-	@Override
-	public int hashCode() {
-		final int prime = 31;
-		int result = 1;
-		result = prime * result + ((path == null) ? 0 : path.hashCode());
-		return result;
-	}
-
-	@Override
-	public boolean equals(Object obj) {
-		if (this == obj)
-			return true;
-		if (obj == null)
-			return false;
-		if (getClass() != obj.getClass())
-			return false;
-		WebSocketDataListener other = (WebSocketDataListener) obj;
-		if (path == null) {
-			if (other.path != null)
-				return false;
-		} else if (!path.equals(other.path))
-			return false;
-		return true;
+	public void setProtocol(String protocol) {
+		this.protocol = protocol;
 	}
 	
 }
