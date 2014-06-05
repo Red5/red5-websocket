@@ -81,7 +81,7 @@ public class WebSocketDecoder extends CumulativeProtocolDecoder {
 			// there is incoming data from the websocket, decode and send to handler or next filter     
 			int startPos = in.position();
 			WSMessage message = decodeIncommingData(in, session);
-			if (message.isPayloadComplete()) {				
+			if (message.isPayloadComplete()) {
 				out.write(message);
 			} else {
 				// there was not enough data in the buffer to parse. Reset the in buffer position and wait for more data before trying again
@@ -101,6 +101,7 @@ public class WebSocketDecoder extends CumulativeProtocolDecoder {
 	 * Try parsing the message as a websocket handshake request. If it is such a request, 
 	 * then send the corresponding handshake response (as in Section 4.2.2 RFC 6455).
 	 */
+	@SuppressWarnings("unchecked")
 	private boolean doHandShake(IoSession session, IoBuffer in) {
 		// create the connection obj
 		WebSocketConnection conn = new WebSocketConnection(session);
@@ -109,17 +110,21 @@ public class WebSocketDecoder extends CumulativeProtocolDecoder {
 			conn.setSecure(true);
 		}
 		try {
-			Map<String, String> headers = parseClientRequest(conn, new String(in.array()));
-	        log.warn("Header map: {}", headers);			
+			Map<String, Object> headers = parseClientRequest(conn, new String(in.array()));
+			log.warn("Header map: {}", headers);
 			if (!headers.isEmpty() && headers.containsKey(Constants.WS_HEADER_KEY)) {
 				// add the headers to the connection, they may be of use to implementers
 				conn.setHeaders(headers);
+				// add query string parameters
+				if (headers.containsKey(Constants.URI_QS_PARAMETERS)) {
+					conn.setQuerystringParameters((Map<String, Object>) headers.remove(Constants.URI_QS_PARAMETERS));
+				}
 				// check the version
 				if (!"13".equals(headers.get(Constants.WS_HEADER_VERSION))) {
 					log.info("Version 13 was not found in the request, handshaking may fail");
-				}  
+				}
 				// TODO add handling for protocols requested by the client
-				
+
 				// store connection in the current session
 				session.setAttribute("connection", conn);
 				// handshake is finished
@@ -128,9 +133,9 @@ public class WebSocketDecoder extends CumulativeProtocolDecoder {
 				WebSocketScopeManager manager = ((WebSocketPlugin) PluginRegistry.getPlugin("WebSocketPlugin")).getManager();
 				manager.addConnection(conn);
 				// prepare response and write it to the directly to the session
-				HandshakeResponse wsResponse = buildHandshakeResponse(conn, headers.get(Constants.WS_HEADER_KEY));		
+				HandshakeResponse wsResponse = buildHandshakeResponse(conn, (String) headers.get(Constants.WS_HEADER_KEY));
 				session.write(wsResponse);
-				log.debug("Handshake complete");				
+				log.debug("Handshake complete");
 				return true;
 			}
 			// set connection as native / direct
@@ -151,29 +156,30 @@ public class WebSocketDecoder extends CumulativeProtocolDecoder {
 	 * @return map of headers
 	 * @throws WebSocketException
 	 */
-    private Map<String, String> parseClientRequest(WebSocketConnection conn, String requestData) throws WebSocketException {
-        String[] request = requestData.split("\r\n");
-        log.warn("Request: {}", Arrays.toString(request));
-        Map<String, String> map = new HashMap<String, String>();
-        for (int i = 0; i < request.length; i++) {
-        	if (request[i].startsWith("GET ")) {
+	private Map<String, Object> parseClientRequest(WebSocketConnection conn, String requestData) throws WebSocketException {
+		String[] request = requestData.split("\r\n");
+		log.warn("Request: {}", Arrays.toString(request));
+		Map<String, Object> map = new HashMap<String, Object>();
+		for (int i = 0; i < request.length; i++) {
+			if (request[i].startsWith("GET ")) {
 				// get the path data for handShake
-        		int start = request[i].indexOf('/');
-        		int end = request[i].indexOf(' ', start);
-        		// check for '?' or included query string
-        		if (request[i].indexOf('?', start) > 0) {
-        			end = request[i].indexOf('?', start);
-    				// TODO parse any included query string
-        			
-        		}
+				int start = request[i].indexOf('/');
+				int end = request[i].indexOf(' ', start);
+				// check for '?' or included query string
+				if (request[i].indexOf('?', start) > 0) {
+					end = request[i].indexOf('?', start);
+					// parse any included query string
+					String qs = request[i].substring(end, request[i].indexOf(' ', start)).trim();
+					map.put(Constants.URI_QS_PARAMETERS, parseQuerystring(qs));
+				}
 				String path = request[i].substring(start, end).trim();
-				conn.setPath(path);				
+				conn.setPath(path);
 				// get the manager
 				WebSocketScopeManager manager = ((WebSocketPlugin) PluginRegistry.getPlugin("WebSocketPlugin")).getManager();
 				// only check that the application is enabled, not the room or sub levels
 				if (!manager.isEnabled(path)) {
 					// invalid scope or its application is not enabled, send disconnect message
-					HandshakeResponse errResponse = build400Response(conn);		
+					HandshakeResponse errResponse = build400Response(conn);
 					WriteFuture future = conn.getSession().write(errResponse);
 					future.addListener(new IoFutureListener<IoFuture>() {
 						@Override
@@ -183,16 +189,16 @@ public class WebSocketDecoder extends CumulativeProtocolDecoder {
 						}
 					});
 					throw new WebSocketException("Handshake failed");
-				}        	
-        	} else if (request[i].contains(Constants.WS_HEADER_KEY)) {
-                map.put(Constants.WS_HEADER_KEY, extractHeaderValue(request[i]));
-            } else if (request[i].contains(Constants.WS_HEADER_VERSION)) {
-                map.put(Constants.WS_HEADER_VERSION, extractHeaderValue(request[i]));              
-            } else if (request[i].contains(Constants.WS_HEADER_EXTENSIONS)) {
-                map.put(Constants.WS_HEADER_EXTENSIONS, extractHeaderValue(request[i]));              
-            } else if (request[i].contains(Constants.WS_HEADER_PROTOCOL)) {
-                map.put(Constants.WS_HEADER_PROTOCOL, extractHeaderValue(request[i]));              
-            } else if (request[i].contains(Constants.HTTP_HEADER_HOST)) {
+				}
+			} else if (request[i].contains(Constants.WS_HEADER_KEY)) {
+				map.put(Constants.WS_HEADER_KEY, extractHeaderValue(request[i]));
+			} else if (request[i].contains(Constants.WS_HEADER_VERSION)) {
+				map.put(Constants.WS_HEADER_VERSION, extractHeaderValue(request[i]));
+			} else if (request[i].contains(Constants.WS_HEADER_EXTENSIONS)) {
+				map.put(Constants.WS_HEADER_EXTENSIONS, extractHeaderValue(request[i]));
+			} else if (request[i].contains(Constants.WS_HEADER_PROTOCOL)) {
+				map.put(Constants.WS_HEADER_PROTOCOL, extractHeaderValue(request[i]));
+			} else if (request[i].contains(Constants.HTTP_HEADER_HOST)) {
 				// get the host data
 				conn.setHost(extractHeaderValue(request[i]));
 			} else if (request[i].contains(Constants.HTTP_HEADER_ORIGIN)) {
@@ -201,20 +207,20 @@ public class WebSocketDecoder extends CumulativeProtocolDecoder {
 			} else if (request[i].contains(Constants.HTTP_HEADER_USERAGENT)) {
 				map.put(Constants.HTTP_HEADER_USERAGENT, extractHeaderValue(request[i]));
 			}
-        }
-        return map;
-    }
+		}
+		return map;
+	}
 
-    /**
-     * Returns the trimmed header value.
-     * 
-     * @param requestHeader
-     * @return value
-     */
+	/**
+	 * Returns the trimmed header value.
+	 * 
+	 * @param requestHeader
+	 * @return value
+	 */
 	private String extractHeaderValue(String requestHeader) {
 		return requestHeader.substring(requestHeader.indexOf(':') + 1).trim();
-	}  	
-	
+	}
+
 	/**
 	 * Build a handshake response based on the given client key.
 	 * 
@@ -252,11 +258,11 @@ public class WebSocketDecoder extends CumulativeProtocolDecoder {
 		buf.put(String.format("Sec-WebSocket-Accept: %s", new String(accept)).getBytes());
 		buf.put(Constants.CRLF);
 		buf.put(Constants.CRLF);
-		//buf.put(accept);
+		// if any bytes follow this crlf, the follow-up data will be corrupted 
 		log.trace("Handshake response size: {}", buf.limit());
 		return new HandshakeResponse(buf);
 	}
-	
+
 	/**
 	 * Build an HTTP 400 "Bad Request" response.
 	 * 
@@ -274,8 +280,8 @@ public class WebSocketDecoder extends CumulativeProtocolDecoder {
 		buf.put(Constants.CRLF);
 		log.trace("Handshake error response size: {}", buf.limit());
 		return new HandshakeResponse(buf);
-	}	
-	
+	}
+
 	/**
 	 * Decode the in buffer according to the Section 5.2. RFC 6455.
 	 * If there are multiple websocket dataframes in the buffer, this will parse all and return one complete decoded buffer.
@@ -325,25 +331,25 @@ public class WebSocketDecoder extends CumulativeProtocolDecoder {
 					result.setMessageType(MessageType.TEXT);
 					break;
 				case 2: // binary
-					result.setMessageType(MessageType.BINARY);					
+					result.setMessageType(MessageType.BINARY);
 					break;
 				case 9: // ping
 					log.trace("PING");
 					result.setMessageType(MessageType.PING);
 					// TODO should send back a PONG
-					
+
 					break;
 				case 0xa: // pong
-					log.trace("PONG");					
+					log.trace("PONG");
 					result.setMessageType(MessageType.PONG);
 					break;
 				case 8: // close
 					result.setMessageType(MessageType.CLOSE);
 					// close the session without delay
 					session.close(true);
-					return result;				
+					return result;
 				default:
-					log.info("Unhandled opcode: {}", opCode);					
+					log.info("Unhandled opcode: {}", opCode);
 			}
 			byte frameInfo2 = in.get();
 			// get mask bit (1 bit)
@@ -376,21 +382,21 @@ public class WebSocketDecoder extends CumulativeProtocolDecoder {
 				byte maskKey[] = new byte[4];
 				for (int i = 0; i < 4; i++) {
 					maskKey[i] = in.get();
-				}				
+				}
 				/*  now un-mask frameLen bytes as per Section 5.3 RFC 6455
-			    Octet i of the transformed data ("transformed-octet-i") is the XOR of
-			    octet i of the original data ("original-octet-i") with octet at index
-			    i modulo 4 of the masking key ("masking-key-octet-j"):
-			    j                   = i MOD 4
-			    transformed-octet-i = original-octet-i XOR masking-key-octet-j
+				Octet i of the transformed data ("transformed-octet-i") is the XOR of
+				octet i of the original data ("original-octet-i") with octet at index
+				i modulo 4 of the masking key ("masking-key-octet-j"):
+				j                   = i MOD 4
+				transformed-octet-i = original-octet-i XOR masking-key-octet-j
 				*/
-    			byte[] unMaskedPayLoad = new byte[frameLen];
-    			for (int i = 0; i < frameLen; i++) {
-    				byte maskedByte = in.get();
-    				unMaskedPayLoad[i] = (byte) (maskedByte ^ maskKey[i % 4]);
-    			}
-    			// add the payload
-    			result.addPayload(unMaskedPayLoad);
+				byte[] unMaskedPayLoad = new byte[frameLen];
+				for (int i = 0; i < frameLen; i++) {
+					byte maskedByte = in.get();
+					unMaskedPayLoad[i] = (byte) (maskedByte ^ maskKey[i % 4]);
+				}
+				// add the payload
+				result.addPayload(unMaskedPayLoad);
 			} else {
 				// Validate if we have enough data in the buffer to completely parse the WebSocket DataFrame. If not return null.
 				if (frameLen > in.remaining()) {
@@ -398,13 +404,30 @@ public class WebSocketDecoder extends CumulativeProtocolDecoder {
 					return null;
 				}
 				byte[] payLoad = new byte[frameLen];
-    			in.get(payLoad);
-    			// add the payload
-    			result.addPayload(payLoad);
+				in.get(payLoad);
+				// add the payload
+				result.addPayload(payLoad);
 			}
 		} while (in.hasRemaining());
 		result.setPayloadComplete();
 		return result;
 	}
-	
+
+	/**
+	 * Returns a map of key / value pairs from a given querystring.
+	 * 
+	 * @param query
+	 * @return k/v map
+	 */
+	public static Map<String, Object> parseQuerystring(String query) {
+		String[] params = query.split("&");
+		Map<String, Object> map = new HashMap<String, Object>();
+		for (String param : params) {
+			String name = param.split("=")[0];
+			String value = param.split("=")[1];
+			map.put(name, value);
+		}
+		return map;
+	}
+
 }

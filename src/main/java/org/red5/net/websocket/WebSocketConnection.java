@@ -63,7 +63,15 @@ public class WebSocketConnection {
 	// secure or not
 	private boolean secure;
 
-	private Map<String, String> headers;
+	/**
+	 * Contains http headers and other web-socket information from the initial request.
+	 */
+	private Map<String, Object> headers;
+
+	/**
+	 * Contains uri parameters from the initial request.
+	 */
+	private Map<String, Object> querystringParameters;
 	
 	/**
 	 * constructor
@@ -178,12 +186,20 @@ public class WebSocketConnection {
 	 * 
 	 * @param headers
 	 */
-	public void setHeaders(Map<String, String> headers) {
+	public void setHeaders(Map<String, Object> headers) {
 		this.headers = headers;
 	}
 
-	public Map<String, String> getHeaders() {
+	public Map<String, Object> getHeaders() {
 		return headers;
+	}
+
+	public Map<String, Object> getQuerystringParameters() {
+		return querystringParameters;
+	}
+
+	public void setQuerystringParameters(Map<String, Object> querystringParameters) {
+		this.querystringParameters = querystringParameters;
 	}
 
 	/**
