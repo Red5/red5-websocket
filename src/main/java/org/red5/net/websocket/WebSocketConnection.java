@@ -161,14 +161,11 @@ public class WebSocketConnection {
 	}
 
 	/**
-	 * get the connection id
+	 * Returns the connection id.
+	 * 
 	 * @return id
-	 * @throws WebSocketException when the session is invalid...
 	 */
-	public long getId() throws WebSocketException {
-		if (session == null) {
-			throw new WebSocketException("invalid connection");
-		}
+	public long getId() {
 		return id;
 	}
 

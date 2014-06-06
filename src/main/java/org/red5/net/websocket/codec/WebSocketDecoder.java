@@ -82,6 +82,8 @@ public class WebSocketDecoder extends CumulativeProtocolDecoder {
 			int startPos = in.position();
 			WSMessage message = decodeIncommingData(in, session);
 			if (message.isPayloadComplete()) {
+				// set the originating connection on the message
+				message.setConnection(conn);
 				// set the connections path on the message
 				message.setPath(conn.getPath());
 				// write the message

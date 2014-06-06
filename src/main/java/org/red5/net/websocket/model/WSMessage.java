@@ -1,8 +1,10 @@
 package org.red5.net.websocket.model;
 
 import java.io.UnsupportedEncodingException;
+import java.lang.ref.WeakReference;
 
 import org.apache.mina.core.buffer.IoBuffer;
+import org.red5.net.websocket.WebSocketConnection;
 
 /**
  * Represents incoming WebSocket data which has been decoded.
@@ -11,15 +13,22 @@ import org.apache.mina.core.buffer.IoBuffer;
  */
 public class WSMessage {
 
+	// message type
 	private MessageType messageType;
+
+	// the originating connection for this message
+	private WeakReference<WebSocketConnection> connection;
 	
+	// payload
 	private IoBuffer payload;
 	
 	// the path on which this message originated
 	private String path;
 	
+	// creation time
 	private long timeStamp = System.currentTimeMillis();
 
+	// adding to the payload is finished
 	private boolean payloadComplete;
 	
 	/**
@@ -38,6 +47,14 @@ public class WSMessage {
 
 	public void setMessageType(MessageType messageType) {
 		this.messageType = messageType;
+	}
+
+	public WebSocketConnection getConnection() {
+		return connection.get();
+	}
+
+	public void setConnection(WebSocketConnection connection) {
+		this.connection = new WeakReference<WebSocketConnection>(connection);
 	}
 
 	/**
