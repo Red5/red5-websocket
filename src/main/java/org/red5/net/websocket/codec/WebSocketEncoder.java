@@ -105,10 +105,10 @@ public class WebSocketEncoder extends ProtocolEncoderAdapter {
 		if (frameLen <= 125) {
 			buffer.put((byte) ((byte) frameLen & (byte) 0x7F));
 		} else if (frameLen > 125 && frameLen <= 65535) {
-			buffer.put((byte) 126);
+			buffer.put((byte) ((byte) 126 & (byte) 0x7F));
 			buffer.putShort((short) frameLen);
 		} else {
-			buffer.put((byte) 127);
+			buffer.put((byte) ((byte) 127 & (byte) 0x7F));
 			buffer.putLong((int) frameLen);
 		}
 		buffer.put(data);

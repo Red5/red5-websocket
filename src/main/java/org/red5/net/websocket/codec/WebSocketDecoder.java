@@ -61,6 +61,36 @@ public class WebSocketDecoder extends CumulativeProtocolDecoder {
 
 	private static final Logger log = LoggerFactory.getLogger(WebSocketDecoder.class);
 
+	private static final String DECODER_STATE_KEY = "decoder-state";
+
+	private static final String DECODED_MESSAGE_KEY = "decoded-message";
+
+	private static final String DECODED_MESSAGE_TYPE_KEY = "decoded-message-type";
+	
+	private static final String DECODED_MESSAGE_FRAGMENTS_KEY = "decoded-message-fragments";
+	
+	/**
+	 * Keeps track of the decoding state of a frame. Byte values start at -128 as a flag to indicate they are not set.
+	 */
+	private final class DecoderState {
+		// keep track of fin == 0 to indicate a fragment
+		byte fin = Byte.MIN_VALUE;
+
+		byte opCode = Byte.MIN_VALUE;
+
+		byte mask = Byte.MIN_VALUE;
+
+		int frameLen = 0;
+
+		// payload
+		byte[] payload;
+
+		@Override
+		public String toString() {
+			return "DecoderState [fin=" + fin + ", opCode=" + opCode + ", mask=" + mask + ", frameLen=" + frameLen + "]";
+		}
+	}
+
 	@Override
 	protected boolean doDecode(IoSession session, IoBuffer in, ProtocolDecoderOutput out) throws Exception {
 		IoBuffer resultBuffer;
@@ -78,19 +108,28 @@ public class WebSocketDecoder extends CumulativeProtocolDecoder {
 				out.write(resultBuffer);
 			}
 		} else if (conn.isWebConnection()) {
-			// there is incoming data from the websocket, decode and send to handler or next filter     
-			int startPos = in.position();
-			WSMessage message = decodeIncommingData(in, session);
-			if (message.isPayloadComplete()) {
+			// grab decoding state
+			DecoderState decoderState = (DecoderState) session.getAttribute(DECODER_STATE_KEY);
+			if (decoderState == null) {
+				decoderState = new DecoderState();
+				session.setAttribute(DECODER_STATE_KEY, decoderState);
+			}
+			// there is incoming data from the websocket, decode it
+			decodeIncommingData(in, session);
+			// this will be null until all the fragments are collected
+			WSMessage message = (WSMessage) session.getAttribute(DECODED_MESSAGE_KEY);
+			log.trace("State: {} message: {}", decoderState, message);
+			if (message != null) {
 				// set the originating connection on the message
 				message.setConnection(conn);
 				// set the connections path on the message
 				message.setPath(conn.getPath());
 				// write the message
 				out.write(message);
+				// remove decoded message
+				session.removeAttribute(DECODED_MESSAGE_KEY);
 			} else {
-				// there was not enough data in the buffer to parse. Reset the in buffer position and wait for more data before trying again
-				in.position(startPos);
+				// there was not enough data in the buffer to parse
 				return false;
 			}
 		} else {
@@ -313,76 +352,50 @@ public class WebSocketDecoder extends CumulativeProtocolDecoder {
 	 * 
 	 * @param in
 	 * @param session
-	 * @return IoBuffer
 	 */
-	public static WSMessage decodeIncommingData(IoBuffer in, IoSession session) {
+	public static void decodeIncommingData(IoBuffer in, IoSession session) {
 		log.trace("Decoding: {}", in);
-		WSMessage result = new WSMessage();
-		do {
+		// get decoder state
+		DecoderState decoderState = (DecoderState) session.getAttribute(DECODER_STATE_KEY);
+		if (decoderState.fin == Byte.MIN_VALUE) {
 			byte frameInfo = in.get();
 			// get FIN (1 bit)
-			byte fin = (byte) ((frameInfo >> 7) & 1);
-			log.trace("FIN: {}", fin);
+			//log.debug("frameInfo: {}", Integer.toBinaryString((frameInfo & 0xFF) + 256));
+			decoderState.fin = (byte) ((frameInfo >>> 7) & 1);
+			log.trace("FIN: {}", decoderState.fin);
 			// the next 3 bits are for RSV1-3 (not used here at the moment)			
 			// get the opcode (4 bits)
-			byte opCode = (byte) (frameInfo & 0x0f);
-			log.trace("Opcode: {}", opCode);
+			decoderState.opCode = (byte) (frameInfo & 0x0f);
+			log.trace("Opcode: {}", decoderState.opCode);
 			// opcodes 3-7 and b-f are reserved for non-control frames
-			switch (opCode) {
-				case 0: // continuation
-					result.setMessageType(MessageType.CONTINUATION);
-					break;
-				case 1: // text
-					result.setMessageType(MessageType.TEXT);
-					break;
-				case 2: // binary
-					result.setMessageType(MessageType.BINARY);
-					break;
-				case 9: // ping
-					log.trace("PING");
-					result.setMessageType(MessageType.PING);
-					// TODO should send back a PONG
-
-					break;
-				case 0xa: // pong
-					log.trace("PONG");
-					result.setMessageType(MessageType.PONG);
-					break;
-				case 8: // close
-					result.setMessageType(MessageType.CLOSE);
-					// close the session without delay
-					session.close(true);
-					return result;
-				default:
-					log.info("Unhandled opcode: {}", opCode);
-			}
+		}
+		if (decoderState.mask == Byte.MIN_VALUE) {
 			byte frameInfo2 = in.get();
 			// get mask bit (1 bit)
-			byte mask = (byte) ((frameInfo2 >> 7) & 1);
-			log.trace("Mask: {}", mask);
+			decoderState.mask = (byte) ((frameInfo2 >>> 7) & 1);
+			log.trace("Mask: {}", decoderState.mask);
 			// get payload length (7, 7+16, 7+64 bits)
-			int frameLen = (frameInfo2 & (byte) 0x7F);
-			log.trace("Payload length: {}", frameLen);
-			if (frameLen == 126) {
-				frameLen = in.getShort();
-				log.trace("Payload length updated: {}", frameLen);
-			}
-			if (frameLen == 127) {
+			decoderState.frameLen = (frameInfo2 & (byte) 0x7F);
+			log.trace("Payload length: {}", decoderState.frameLen);
+			if (decoderState.frameLen == 126) {
+				decoderState.frameLen = in.getShort();
+				log.trace("Payload length updated: {}", decoderState.frameLen);
+			} else if (decoderState.frameLen == 127) {
 				long extendedLen = in.getLong();
 				if (extendedLen >= Integer.MAX_VALUE) {
 					log.error("Data frame is too large for this implementation. Length: {}", extendedLen);
 				} else {
-					frameLen = (int) extendedLen;
+					decoderState.frameLen = (int) extendedLen;
 				}
-				log.trace("Payload length updated: {}", frameLen);
+				log.trace("Payload length updated: {}", decoderState.frameLen);
 			}
+		}
+		// ensure enough bytes left to fill payload, if masked add 4 additional bytes
+		if (decoderState.frameLen + (decoderState.mask == 1 ? 4 : 0) > in.remaining()) {
+			log.warn("Not enough data available to decode");
+		} else {
 			// if the data is masked (xor'd)
-			if (mask == 1) {
-				// Validate if we have enough data in the buffer to completely parse the WebSocket DataFrame. If not return null.
-				if (frameLen + 4 > in.remaining()) {
-					log.warn("Not enough data available to decode");
-					return null;
-				}
+			if (decoderState.mask == 1) {
 				// get the mask key
 				byte maskKey[] = new byte[4];
 				for (int i = 0; i < 4; i++) {
@@ -395,27 +408,98 @@ public class WebSocketDecoder extends CumulativeProtocolDecoder {
 				j                   = i MOD 4
 				transformed-octet-i = original-octet-i XOR masking-key-octet-j
 				*/
-				byte[] unMaskedPayLoad = new byte[frameLen];
-				for (int i = 0; i < frameLen; i++) {
+				decoderState.payload = new byte[decoderState.frameLen];
+				for (int i = 0; i < decoderState.frameLen; i++) {
 					byte maskedByte = in.get();
-					unMaskedPayLoad[i] = (byte) (maskedByte ^ maskKey[i % 4]);
+					decoderState.payload[i] = (byte) (maskedByte ^ maskKey[i % 4]);
 				}
-				// add the payload
-				result.addPayload(unMaskedPayLoad);
 			} else {
-				// Validate if we have enough data in the buffer to completely parse the WebSocket DataFrame. If not return null.
-				if (frameLen > in.remaining()) {
-					log.warn("Not enough data available to decode");
-					return null;
-				}
-				byte[] payLoad = new byte[frameLen];
-				in.get(payLoad);
-				// add the payload
-				result.addPayload(payLoad);
+				decoderState.payload = new byte[decoderState.frameLen];
+				in.get(decoderState.payload);
 			}
-		} while (in.hasRemaining());
-		result.setPayloadComplete();
-		return result;
+			// if FIN == 0 we have fragments
+			if (decoderState.fin == 0) {
+				// store the fragment and continue
+				IoBuffer fragments = (IoBuffer) session.getAttribute(DECODED_MESSAGE_FRAGMENTS_KEY);
+				if (fragments == null) {
+					fragments = IoBuffer.allocate(decoderState.frameLen);
+					fragments.setAutoExpand(true);
+					session.setAttribute(DECODED_MESSAGE_FRAGMENTS_KEY, fragments);
+					// store message type since following type may be a continuation
+					MessageType messageType = MessageType.CLOSE;
+					switch (decoderState.opCode) {
+						case 0: // continuation
+							messageType = MessageType.CONTINUATION;
+							break;
+						case 1: // text
+							messageType = MessageType.TEXT;
+							break;
+						case 2: // binary
+							messageType = MessageType.BINARY;
+							break;
+						case 9: // ping
+							messageType = MessageType.PING;
+							break;
+						case 0xa: // pong
+							messageType = MessageType.PONG;
+							break;
+					}					
+					session.setAttribute(DECODED_MESSAGE_TYPE_KEY, messageType);
+				}
+				fragments.put(decoderState.payload);
+				// remove decoder state
+				session.removeAttribute(DECODER_STATE_KEY);
+			} else {
+				// create a message
+				WSMessage message = new WSMessage();
+				// check for previously set type from the first fragment (if we have fragments)
+				MessageType messageType = (MessageType) session.getAttribute(DECODED_MESSAGE_TYPE_KEY);
+				if (messageType == null) {
+					switch (decoderState.opCode) {
+						case 0: // continuation
+							messageType = MessageType.CONTINUATION;
+							break;
+						case 1: // text
+							messageType = MessageType.TEXT;
+							break;
+						case 2: // binary
+							messageType = MessageType.BINARY;
+							break;
+						case 9: // ping
+							messageType = MessageType.PING;
+							break;
+						case 0xa: // pong
+							messageType = MessageType.PONG;
+							break;
+						case 8: // close
+							messageType = MessageType.CLOSE;
+							// handler or listener should close upon receipt
+							break;
+						default:
+							// TODO throw ex?
+							log.info("Unhandled opcode: {}", decoderState.opCode);
+					}	
+				}
+				// set message type
+				message.setMessageType(messageType);
+				// check for fragments and piece them together, otherwise just send the single completed frame
+				IoBuffer fragments = (IoBuffer) session.removeAttribute(DECODED_MESSAGE_FRAGMENTS_KEY);
+				if (fragments != null) {
+					fragments.put(decoderState.payload);
+					fragments.flip();
+					message.setPayload(fragments);					
+				} else {
+					// add the payload
+					message.addPayload(decoderState.payload);					
+				}
+				// set the message on the session
+				session.setAttribute(DECODED_MESSAGE_KEY, message);	
+				// remove decoder state
+				session.removeAttribute(DECODER_STATE_KEY);
+				// remove type
+				session.removeAttribute(DECODED_MESSAGE_TYPE_KEY);
+			}
+		}
 	}
 
 	/**

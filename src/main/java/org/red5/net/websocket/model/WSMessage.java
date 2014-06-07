@@ -28,9 +28,6 @@ public class WSMessage {
 	// creation time
 	private long timeStamp = System.currentTimeMillis();
 
-	// adding to the payload is finished
-	private boolean payloadComplete;
-	
 	/**
 	 * Returns the payload data as a UTF8 string.
 	 * 
@@ -63,7 +60,7 @@ public class WSMessage {
 	 * @return payload
 	 */
 	public IoBuffer getPayload() {
-		return payload;
+		return payload.flip();
 	}
 
 	public void setPayload(IoBuffer payload) {
@@ -96,16 +93,8 @@ public class WSMessage {
 		this.payload.put(additionalPayload);
 	}	
 	
-	/**
-	 * Flips the payload IoBuffer because we are done adding data.
-	 */
-	public void setPayloadComplete() {
-		payload.flip();
-		payloadComplete = true;
-	}
-	
 	public boolean isPayloadComplete() {
-		return payloadComplete;
+		return !payload.hasRemaining();
 	}
 
 	public long getTimeStamp() {
