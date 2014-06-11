@@ -163,10 +163,18 @@ public class WebSocketDecoder extends CumulativeProtocolDecoder {
 				}
 				// check the version
 				if (!"13".equals(headers.get(Constants.WS_HEADER_VERSION))) {
-					log.info("Version 13 was not found in the request, handshaking may fail");
+					log.info("Version 13 was not found in the request, communications may fail");
 				}
-				// TODO add handling for protocols requested by the client
-
+				// TODO add handling for extensions
+				
+				// TODO expand handling for protocols requested by the client, instead of just echoing back
+				if (headers.containsKey(Constants.WS_HEADER_PROTOCOL)) {
+					String protocol = (String) headers.get(Constants.WS_HEADER_PROTOCOL);
+					log.info("Protocol {} found in the request", protocol);
+					conn.setProtocol(protocol);
+					// TODO check listeners for "protocol" support
+					
+				}
 				// store connection in the current session
 				session.setAttribute(Constants.CONNECTION, conn);
 				// handshake is finished
@@ -298,6 +306,16 @@ public class WebSocketDecoder extends CumulativeProtocolDecoder {
 		buf.put(Constants.CRLF);
 		buf.put(String.format("Sec-WebSocket-Location: %s", conn.getHost()).getBytes());
 		buf.put(Constants.CRLF);
+		// send back extensions if enabled
+		if (conn.hasExtensions()) {
+    		buf.put(String.format("Sec-WebSocket-Extensions: %s", conn.getExtensionsAsString()).getBytes());
+    		buf.put(Constants.CRLF);
+		}
+		// send back protocol if enabled
+		if (conn.hasProtocol()) {
+    		buf.put(String.format("Sec-WebSocket-Protocol: %s", conn.getProtocol()).getBytes());
+    		buf.put(Constants.CRLF);
+		}
 		buf.put(String.format("Sec-WebSocket-Accept: %s", new String(accept)).getBytes());
 		buf.put(Constants.CRLF);
 		buf.put(Constants.CRLF);

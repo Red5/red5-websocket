@@ -72,13 +72,80 @@ public class WebSocketConnection {
 	 * Contains uri parameters from the initial request.
 	 */
 	private Map<String, Object> querystringParameters;
+
+	/**
+	 * Extensions enabled on this connection.
+	 */
+	private Map<String, Object> extensions;	
+	
+	/**
+	 * Connection protocol (ex. chat, json, etc)
+	 */
+	private String protocol;
 	
 	/**
 	 * constructor
 	 */
 	public WebSocketConnection(IoSession session) {
 		this.session = session;
+	}	
+	
+	/**
+	 * Receive data from a client.
+	 * 
+	 * @param message
+	 */
+	public void receive(WSMessage message) {
+		log.trace("receive message");
+		if (isConnected()) {
+			WebSocketScopeManager manager = ((WebSocketPlugin) PluginRegistry.getPlugin("WebSocketPlugin")).getManager();
+			WebSocketScope scope = manager.getScope(getPath());
+			scope.onMessage(message);
+		} else {
+			log.warn("Not connected");
+		}
 	}
+	
+	/**
+	 * Sends text to the client.
+	 * 
+	 * @param data string data
+	 * @throws UnsupportedEncodingException 
+	 */
+	public void send(String data) throws UnsupportedEncodingException {
+		log.trace("send message: {}", data);
+		Packet packet = Packet.build(data.getBytes(), MessageType.TEXT);
+		session.write(packet);
+	}
+
+	/**
+	 * Sends binary data to the client.
+	 * 
+	 * @param buf
+	 */
+	public void send(byte[] buf) {
+		log.trace("send binary: {}", Arrays.toString(buf));
+		Packet packet = Packet.build(buf);
+		session.write(packet);
+	}
+	
+	/**
+	 * Sends a pong back to the client; normally in response to a ping.
+	 * 
+	 * @param buf
+	 */
+	public void sendPong(byte[] buf) {
+		log.trace("send pong: {}", buf);
+		Packet packet = Packet.build(buf, MessageType.PONG);
+		session.write(packet);		
+	}
+
+	/**
+	 * close Connection
+	 */
+	public void close() {
+		session.close(true);
+	}	
 
 	public ConnectionType getType() {
 		return type;
@@ -200,60 +267,75 @@ public class WebSocketConnection {
 	}
 
 	/**
-	 * receive data from a client.
+	 * Returns whether or not extensions are enabled on this connection.
 	 * 
-	 * @param message
+	 * @return true if extensions are enabled, false otherwise
 	 */
-	public void receive(WSMessage message) {
-		log.trace("receive message");
-		if (isConnected()) {
-			WebSocketScopeManager manager = ((WebSocketPlugin) PluginRegistry.getPlugin("WebSocketPlugin")).getManager();
-			WebSocketScope scope = manager.getScope(getPath());
-			scope.onMessage(message);
-		} else {
-			log.warn("Not connected");
+	public boolean hasExtensions() {
+		return extensions != null && !extensions.isEmpty();
+	}
+
+	/**
+	 * Returns enabled extensions.
+	 * 
+	 * @return extensions
+	 */
+	public Map<String, Object> getExtensions() {
+		return extensions;
+	}
+
+	/**
+	 * Sets the extensions.
+	 * 
+	 * @param extensions
+	 */
+	public void setExtensions(Map<String, Object> extensions) {
+		this.extensions = extensions;
+	}
+
+	/**
+	 * Returns the extensions list as a comma separated string as specified by the rfc.
+	 * 
+	 * @return extension list string or null if no extensions are enabled
+	 */
+	public String getExtensionsAsString() {
+		String extensionsList = null;
+		if (extensions != null) {
+			StringBuilder sb = new StringBuilder();
+    		for (String key : extensions.keySet()) {
+    			sb.append(key);
+    			sb.append("; ");
+    		}
+    		extensionsList = sb.toString().trim();
 		}
-	}
-	
-	/**
-	 * Sends text to the client.
-	 * 
-	 * @param data string data
-	 * @throws UnsupportedEncodingException 
-	 */
-	public void send(String data) throws UnsupportedEncodingException {
-		log.trace("send message: {}", data);
-		Packet packet = Packet.build(data.getBytes(), MessageType.TEXT);
-		session.write(packet);
+		return extensionsList;
 	}
 
 	/**
-	 * Sends binary data to the client.
+	 * Returns whether or not a protocol is enabled on this connection.
 	 * 
-	 * @param buf
+	 * @return true if protocol is enabled, false otherwise
 	 */
-	public void send(byte[] buf) {
-		log.trace("send binary: {}", Arrays.toString(buf));
-		Packet packet = Packet.build(buf);
-		session.write(packet);
-	}
-	
-	/**
-	 * Sends a pong back to the client; normally in response to a ping.
-	 * 
-	 * @param buf
-	 */
-	public void sendPong(byte[] buf) {
-		log.trace("send pong: {}", buf);
-		Packet packet = Packet.build(buf, MessageType.PONG);
-		session.write(packet);		
+	public boolean hasProtocol() {
+		return protocol != null;
 	}
 
 	/**
-	 * close Connection
+	 * Returns the protocol enabled on this connection.
+	 * 
+	 * @return protocol
 	 */
-	public void close() {
-		session.close(true);
+	public String getProtocol() {
+		return protocol;
+	}	
+
+	/**
+	 * Sets the protocol.
+	 * 
+	 * @param protocol
+	 */
+	public void setProtocol(String protocol) {
+		this.protocol = protocol;
 	}
 
 	@Override
