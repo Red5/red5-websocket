@@ -23,6 +23,7 @@ import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.mina.core.buffer.IoBuffer;
 import org.apache.mina.core.future.IoFuture;
@@ -37,6 +38,7 @@ import org.red5.net.websocket.WebSocketConnection;
 import org.red5.net.websocket.WebSocketException;
 import org.red5.net.websocket.WebSocketPlugin;
 import org.red5.net.websocket.WebSocketScopeManager;
+import org.red5.net.websocket.listener.IWebSocketDataListener;
 import org.red5.net.websocket.model.ConnectionType;
 import org.red5.net.websocket.model.HandshakeResponse;
 import org.red5.net.websocket.model.MessageType;
@@ -155,6 +157,8 @@ public class WebSocketDecoder extends CumulativeProtocolDecoder {
 			Map<String, Object> headers = parseClientRequest(conn, new String(in.array()));
 			log.warn("Header map: {}", headers);
 			if (!headers.isEmpty() && headers.containsKey(Constants.WS_HEADER_KEY)) {
+				// get the scope manager
+				WebSocketScopeManager manager = ((WebSocketPlugin) PluginRegistry.getPlugin("WebSocketPlugin")).getManager();
 				// add the headers to the connection, they may be of use to implementers
 				conn.setHeaders(headers);
 				// add query string parameters
@@ -171,16 +175,22 @@ public class WebSocketDecoder extends CumulativeProtocolDecoder {
 				if (headers.containsKey(Constants.WS_HEADER_PROTOCOL)) {
 					String protocol = (String) headers.get(Constants.WS_HEADER_PROTOCOL);
 					log.info("Protocol {} found in the request", protocol);
+					// add protocol to the connection
 					conn.setProtocol(protocol);
 					// TODO check listeners for "protocol" support
-					
+					Set<IWebSocketDataListener> listeners = manager.getScope(conn.getPath()).getListeners();
+					for (IWebSocketDataListener listener : listeners) {
+						if (listener.getProtocol().equals(protocol)) {
+							log.info("Scope has listener support for the {} protocol", protocol);
+							break;
+						}
+					}
 				}
 				// store connection in the current session
 				session.setAttribute(Constants.CONNECTION, conn);
 				// handshake is finished
 				conn.setConnected();
 				// add connection to the manager
-				WebSocketScopeManager manager = ((WebSocketPlugin) PluginRegistry.getPlugin("WebSocketPlugin")).getManager();
 				manager.addConnection(conn);
 				// prepare response and write it to the directly to the session
 				HandshakeResponse wsResponse = buildHandshakeResponse(conn, (String) headers.get(Constants.WS_HEADER_KEY));
