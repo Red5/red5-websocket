@@ -23,7 +23,6 @@ import java.net.InetSocketAddress;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.Executors;
 
 import org.apache.mina.core.filterchain.DefaultIoFilterChainBuilder;
 import org.apache.mina.core.service.IoHandlerAdapter;
@@ -32,7 +31,6 @@ import org.apache.mina.filter.logging.LoggingFilter;
 import org.apache.mina.filter.ssl.SslFilter;
 import org.apache.mina.transport.socket.SocketAcceptor;
 import org.apache.mina.transport.socket.SocketSessionConfig;
-import org.apache.mina.transport.socket.nio.NioProcessor;
 import org.apache.mina.transport.socket.nio.NioSocketAcceptor;
 import org.red5.net.websocket.codec.WebSocketCodecFactory;
 import org.slf4j.Logger;
@@ -58,6 +56,7 @@ public class WebSocketTransport implements InitializingBean, DisposableBean {
 
 	private int receiveBufferSize = 2048;
 
+	@SuppressWarnings("unused")
 	private int connectionThreads = 8;
 
 	private int ioThreads = 16;
@@ -80,7 +79,8 @@ public class WebSocketTransport implements InitializingBean, DisposableBean {
 	@Override
 	public void afterPropertiesSet() throws Exception {
 		// create the nio acceptor
-		acceptor = new NioSocketAcceptor(Executors.newFixedThreadPool(connectionThreads), new NioProcessor(Executors.newFixedThreadPool(ioThreads)));
+		//acceptor = new NioSocketAcceptor(Executors.newFixedThreadPool(connectionThreads), new NioProcessor(Executors.newFixedThreadPool(ioThreads)));
+		acceptor = new NioSocketAcceptor(ioThreads);
 		// instance the websocket handler
 		if (ioHandler == null) {
    			ioHandler = new WebSocketHandler();
@@ -100,8 +100,11 @@ public class WebSocketTransport implements InitializingBean, DisposableBean {
 		// close sessions when the acceptor is stopped
 		acceptor.setCloseOnDeactivation(true);
 		acceptor.setHandler(ioHandler);
+		// requested maximum length of the queue of incoming connections
+		acceptor.setBacklog(64);
 		SocketSessionConfig sessionConf = acceptor.getSessionConfig();
 		sessionConf.setReuseAddress(true);
+		sessionConf.setTcpNoDelay(true);
 		sessionConf.setReceiveBufferSize(receiveBufferSize);
 		sessionConf.setSendBufferSize(sendBufferSize);
 		acceptor.setReuseAddress(true);
