@@ -258,7 +258,7 @@ public class WebSocketConnection {
 
 	@Override
 	public String toString() {
-		return "WebSocketConnection [id=" + id + ", type=" + type + ", host=" + host + ", origin=" + origin + ", path=" + path + ", secure=" + secure + ", connected=" + connected + "]";
+		return "WebSocketConnection [id=" + id + ", type=" + type + ", host=" + host + ", origin=" + origin + ", path=" + path + ", secure=" + secure + ", connected=" + connected + ", remote=" + (session != null ? session.getRemoteAddress().toString() : "unk") + "]";
 	}
 
 }

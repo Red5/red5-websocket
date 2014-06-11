@@ -122,8 +122,6 @@ public class WebSocketDecoder extends CumulativeProtocolDecoder {
 			if (message != null) {
 				// set the originating connection on the message
 				message.setConnection(conn);
-				// set the connections path on the message
-				message.setPath(conn.getPath());
 				// write the message
 				out.write(message);
 				// remove decoded message
@@ -170,7 +168,7 @@ public class WebSocketDecoder extends CumulativeProtocolDecoder {
 				// TODO add handling for protocols requested by the client
 
 				// store connection in the current session
-				session.setAttribute("connection", conn);
+				session.setAttribute(Constants.CONNECTION, conn);
 				// handshake is finished
 				conn.setConnected();
 				// add connection to the manager
@@ -217,6 +215,7 @@ public class WebSocketDecoder extends CumulativeProtocolDecoder {
 					map.put(Constants.URI_QS_PARAMETERS, parseQuerystring(qs));
 				}
 				String path = request[i].substring(start, end).trim();
+				log.debug("Client request path: {}", path);
 				conn.setPath(path);
 				// get the manager
 				WebSocketScopeManager manager = ((WebSocketPlugin) PluginRegistry.getPlugin("WebSocketPlugin")).getManager();

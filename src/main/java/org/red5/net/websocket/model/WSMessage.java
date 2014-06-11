@@ -52,6 +52,8 @@ public class WSMessage {
 
 	public void setConnection(WebSocketConnection connection) {
 		this.connection = new WeakReference<WebSocketConnection>(connection);
+		// set the connections path on the message
+		setPath(connection.getPath());
 	}
 
 	/**
