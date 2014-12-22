@@ -8,6 +8,7 @@
 	<name>websocket</name>
 	<version>1.0</version>
 	<description>Red5 WebSocket plugin</description>
+    <url>https://github.com/Red5/red5-websocket</url>
 	<organization>
 		<name>Red5</name>
 		<url>https://github.com/Red5</url>
