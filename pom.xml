@@ -25,7 +25,16 @@
 			<name>red5-interest</name>
 			<post>https://groups.google.com/forum/?fromgroups#!forum/red5interest</post>
 		</mailingList>
-	</mailingLists>
+	</mailingLists>    
+	<issueManagement>
+        <system>github</system>
+        <url>https://github.com/Red5/red5-websocket/issues</url>
+    </issueManagement>
+    <scm>
+        <url>https://github.com/Red5/red5-websocket.git</url>
+        <connection>scm:git:git@github.com:Red5/red5-websocket.git</connection>
+        <developerConnection>scm:git:git@github.com:Red5/red5-websocket.git</developerConnection>
+    </scm>
 	<developers>
 		<developer>
 			<id>Paul Gregoire</id>
@@ -361,6 +370,12 @@
 			<groupId>junit</groupId>
 			<artifactId>junit</artifactId>
 		</dependency>
+        <dependency>
+            <groupId>net.sourceforge.groboutils</groupId>
+            <artifactId>groboutils-core</artifactId>
+            <version>5</version>
+            <scope>test</scope>
+        </dependency>
 	</dependencies>
     <profiles>
         <profile>
