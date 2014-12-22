@@ -901,6 +901,12 @@ public class WebSocketServerTest {
 			return 0;
 		}
 
+		@Override
+		public boolean isSecured() {
+			// TODO Auto-generated method stub
+			return false;
+		}
+
 	}
 
 }

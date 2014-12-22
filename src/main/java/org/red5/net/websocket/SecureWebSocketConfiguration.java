@@ -47,46 +47,6 @@ public class SecureWebSocketConfiguration {
 	private String keystoreType = "JKS";
 
 	public SslFilter getSslFilter() throws Exception {
-		/*
-		byte[] keystore = null;
-		FileInputStream fis = null;
-		try {
-			File file = new File(keystoreFile);
-			if (file.exists()) {
-				fis = new FileInputStream(file);
-				FileChannel fc = fis.getChannel();
-				ByteBuffer fb = ByteBuffer.allocate(Long.valueOf(file.length()).intValue());
-				fc.read(fb);
-				fb.flip();
-				keystore = IoBuffer.wrap(fb).array();
-			} else {
-				log.warn("Keystore file does not exist: {}", keystoreFile);
-			}
-			file = null;
-		} catch (Exception e) {
-			log.warn("Error setting keystore data", e);
-		} finally {
-			if (fis != null) {
-				try {
-					fis.close();
-				} catch (IOException e) {
-				}
-			}
-		}
-		// Sun's default kind of key store
-		KeyStore ks = KeyStore.getInstance(keystoreType);
-		// For security, every key store is encrypted with a pass phrase that must be provided before we can load
-		// it from disk. The pass phrase is stored as a char[] array so it can be wiped from memory quickly rather than
-		// waiting for a garbage collector. Of course using a string literal here completely defeats that purpose.
-		ks.load(new ByteArrayInputStream(keystore), keyStorePassword.toCharArray());
-		SSLContext context = SSLContext.getInstance("TLS"); //TLS, TLSv1, TLSv1.1
-		// the reference implementation only supports X.509 keys
-		KeyManagerFactory kmf = KeyManagerFactory.getInstance("SunX509");
-		// initialize the key manager
-		kmf.init(ks, keyStorePassword.toCharArray());
-		// initialize the ssl context
-		context.init(kmf.getKeyManagers(), null, null);
-		*/
 		SSLContext context = getSslContext();
 		// create the ssl filter using server mode
 		SslFilter sslFilter = new SslFilter(context);
