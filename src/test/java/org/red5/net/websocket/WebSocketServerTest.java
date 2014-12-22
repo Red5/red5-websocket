@@ -29,8 +29,8 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-import net.sourceforge.groboutils.junit.v1.MultiThreadedTestRunner;
-import net.sourceforge.groboutils.junit.v1.TestRunnable;
+//import net.sourceforge.groboutils.junit.v1.MultiThreadedTestRunner;
+//import net.sourceforge.groboutils.junit.v1.TestRunnable;
 
 import org.apache.mina.core.buffer.IoBuffer;
 import org.apache.mina.core.filterchain.IoFilter.NextFilter;
@@ -107,7 +107,7 @@ public class WebSocketServerTest {
 	    0x82 0x7F 0x0000000000010000 [65536 bytes of binary data]
 	    </pre>	 
 	 */
-
+/*
 	@SuppressWarnings("unused")
 	@Test
 	public void testMultiThreaded() throws Throwable {
@@ -161,6 +161,7 @@ public class WebSocketServerTest {
 		PluginRegistry.shutdown();
 		log.info("testMultiThreaded exit");
 	}
+*/
 
 	//	@Test
 	//	public void testDecodingErrorJuneSixth() throws Throwable {
