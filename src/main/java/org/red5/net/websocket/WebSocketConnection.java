@@ -22,6 +22,8 @@ import java.io.UnsupportedEncodingException;
 import java.util.Arrays;
 import java.util.Map;
 
+import org.apache.mina.core.future.CloseFuture;
+import org.apache.mina.core.future.IoFutureListener;
 import org.apache.mina.core.session.IoSession;
 import org.red5.net.websocket.model.ConnectionType;
 import org.red5.net.websocket.model.MessageType;
@@ -144,7 +146,18 @@ public class WebSocketConnection {
 	 * close Connection
 	 */
 	public void close() {
-		session.close(true);
+		CloseFuture future = session.close(true);
+		future.addListener(new IoFutureListener<CloseFuture>() {
+			public void operationComplete(CloseFuture future) {
+				if (future.isClosed()) {
+					log.debug("Connection is closed");
+				} else {
+					log.debug("Connection is not yet closed");
+				}
+				future.removeListener(this);
+				connected = false;
+			}
+		});
 	}	
 
 	public ConnectionType getType() {

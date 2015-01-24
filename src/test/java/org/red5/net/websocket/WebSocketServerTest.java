@@ -24,16 +24,16 @@ import static org.junit.Assert.assertTrue;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
-//import net.sourceforge.groboutils.junit.v1.MultiThreadedTestRunner;
-//import net.sourceforge.groboutils.junit.v1.TestRunnable;
-
-
-import net.sourceforge.groboutils.junit.v1.TestRunnable;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 import org.apache.mina.core.buffer.IoBuffer;
 import org.apache.mina.core.filterchain.IoFilter.NextFilter;
@@ -110,7 +110,6 @@ public class WebSocketServerTest {
 	    0x82 0x7F 0x0000000000010000 [65536 bytes of binary data]
 	    </pre>	 
 	 */
-/*
 	@SuppressWarnings("unused")
 	@Test
 	public void testMultiThreaded() throws Throwable {
@@ -143,16 +142,16 @@ public class WebSocketServerTest {
 		}
 		// how many threads
 		int threads = 1;
-		TestRunnable[] trs = new TestRunnable[threads];
+		List<Worker> tasks = new ArrayList<Worker>(threads);
 		for (int t = 0; t < threads; t++) {
-			trs[t] = new Worker();
+			tasks.add(new Worker());
 		}
-		MultiThreadedTestRunner mttr = new MultiThreadedTestRunner(trs);
-		//kickstarts the MTTR & fires off threads
+		ExecutorService executorService = Executors.newFixedThreadPool(threads);
+        // invokeAll() blocks until all tasks have run...
 		long start = System.nanoTime();
-		mttr.runTestRunnables();
+        List<Future<Object>> futures = executorService.invokeAll(tasks);
 		log.info("Runtime: {} ns", (System.nanoTime() - start));
-		for (TestRunnable r : trs) {
+		for (Worker r : tasks) {
 			// loop through and check results
 
 		}
@@ -164,7 +163,6 @@ public class WebSocketServerTest {
 		PluginRegistry.shutdown();
 		log.info("testMultiThreaded exit");
 	}
-*/
 
 	//	@Test
 	//	public void testDecodingErrorJuneSixth() throws Throwable {
@@ -320,11 +318,11 @@ public class WebSocketServerTest {
 		log.info("testUnmaskedPingRoundTrip exit");
 	}
 
-	private class Worker extends TestRunnable {
+	private class Worker implements Callable<Object> {
 
 		boolean failed;
 
-		public void runTest() throws Throwable {
+		public Object call() throws Exception {
 			WSClient client = new WSClient("localhost", 8888);
 			client.connect();
 			if (client.isConnected()) {
@@ -332,6 +330,7 @@ public class WebSocketServerTest {
 			} else {
 				failed = true;
 			}
+			return null;
 		}
 
 	}

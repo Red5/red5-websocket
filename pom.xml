@@ -6,7 +6,7 @@
 	<artifactId>websocket</artifactId>
 	<packaging>jar</packaging>
 	<name>websocket</name>
-	<version>1.0</version>
+	<version>1.1</version>
 	<description>Red5 WebSocket plugin</description>
     <url>https://github.com/Red5/red5-websocket</url>
 	<organization>
@@ -44,9 +44,8 @@
 	</developers>
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-		<red5-server.version>1.0.4-SNAPSHOT</red5-server.version>
-		<red5-io.version>1.0.4-SNAPSHOT</red5-io.version>
-		<spring.version>4.0.7.RELEASE</spring.version>
+		<red5.version>1.0.5-SNAPSHOT</red5.version>
+		<spring.version>4.0.8.RELEASE</spring.version>
 		<mina.version>2.0.8</mina.version>
 		<slf4j.version>1.7.5</slf4j.version>
 		<logback.version>1.0.13</logback.version>
@@ -61,7 +60,7 @@
 				<artifactId>maven-compiler-plugin</artifactId>
 				<version>3.1</version>
 				<configuration>
-					<source>1.6</source>
+					<source>1.7</source>
 					<target>1.7</target>
 					<showWarnings>true</showWarnings>
 					<showDeprecation>true</showDeprecation>
@@ -227,7 +226,7 @@
 		<dependency>
 			<groupId>org.red5</groupId>
 			<artifactId>red5-server</artifactId>
-			<version>${red5-server.version}</version>
+			<version>${red5.version}</version>
 			<type>jar</type>
 			<scope>compile</scope>
 		</dependency>
@@ -371,12 +370,6 @@
 			<groupId>junit</groupId>
 			<artifactId>junit</artifactId>
 		</dependency>
-        <dependency>
-            <groupId>net.sourceforge.groboutils</groupId>
-            <artifactId>groboutils-core</artifactId>
-            <version>5</version>
-            <scope>test</scope>
-        </dependency>
 	</dependencies>
     <profiles>
         <profile>
