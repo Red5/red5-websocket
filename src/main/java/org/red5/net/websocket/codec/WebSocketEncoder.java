@@ -113,7 +113,9 @@ public class WebSocketEncoder extends ProtocolEncoderAdapter {
 		}
 		buffer.put(data);
 		buffer.flip();
-		log.trace("Encoded: {}", buffer);
+		if (log.isTraceEnabled()) {
+			log.trace("Encoded: {}", buffer);
+		}
 		return buffer;
 	}
 

@@ -120,7 +120,9 @@ public class WebSocketDecoder extends CumulativeProtocolDecoder {
 			decodeIncommingData(in, session);
 			// this will be null until all the fragments are collected
 			WSMessage message = (WSMessage) session.getAttribute(DECODED_MESSAGE_KEY);
-			log.trace("State: {} message: {}", decoderState, message);
+			if (log.isTraceEnabled()) {
+				log.trace("State: {} message: {}", decoderState, message);
+			}
 			if (message != null) {
 				// set the originating connection on the message
 				message.setConnection(conn);
@@ -155,7 +157,9 @@ public class WebSocketDecoder extends CumulativeProtocolDecoder {
 		}
 		try {
 			Map<String, Object> headers = parseClientRequest(conn, new String(in.array()));
-			log.warn("Header map: {}", headers);
+			if (log.isTraceEnabled()) {
+				log.trace("Header map: {}", headers);
+			}
 			if (!headers.isEmpty() && headers.containsKey(Constants.WS_HEADER_KEY)) {
 				// get the scope manager
 				WebSocketScopeManager manager = ((WebSocketPlugin) PluginRegistry.getPlugin("WebSocketPlugin")).getManager();
@@ -174,14 +178,14 @@ public class WebSocketDecoder extends CumulativeProtocolDecoder {
 				// TODO expand handling for protocols requested by the client, instead of just echoing back
 				if (headers.containsKey(Constants.WS_HEADER_PROTOCOL)) {
 					String protocol = (String) headers.get(Constants.WS_HEADER_PROTOCOL);
-					log.info("Protocol {} found in the request", protocol);
+					log.debug("Protocol {} found in the request", protocol);
 					// add protocol to the connection
 					conn.setProtocol(protocol);
 					// TODO check listeners for "protocol" support
 					Set<IWebSocketDataListener> listeners = manager.getScope(conn.getPath()).getListeners();
 					for (IWebSocketDataListener listener : listeners) {
 						if (listener.getProtocol().equals(protocol)) {
-							log.info("Scope has listener support for the {} protocol", protocol);
+							log.debug("Scope has listener support for the {} protocol", protocol);
 							break;
 						}
 					}
@@ -218,7 +222,9 @@ public class WebSocketDecoder extends CumulativeProtocolDecoder {
 	 */
 	private Map<String, Object> parseClientRequest(WebSocketConnection conn, String requestData) throws WebSocketException {
 		String[] request = requestData.split("\r\n");
-		log.warn("Request: {}", Arrays.toString(request));
+		if (log.isTraceEnabled()) {
+			log.trace("Request: {}", Arrays.toString(request));
+		}
 		Map<String, Object> map = new HashMap<String, Object>();
 		for (int i = 0; i < request.length; i++) {
 			if (request[i].startsWith("GET ")) {
@@ -233,7 +239,7 @@ public class WebSocketDecoder extends CumulativeProtocolDecoder {
 					map.put(Constants.URI_QS_PARAMETERS, parseQuerystring(qs));
 				}
 				String path = request[i].substring(start, end).trim();
-				log.debug("Client request path: {}", path);
+				log.trace("Client request path: {}", path);
 				conn.setPath(path);
 				// get the manager
 				WebSocketScopeManager manager = ((WebSocketPlugin) PluginRegistry.getPlugin("WebSocketPlugin")).getManager();
@@ -329,8 +335,10 @@ public class WebSocketDecoder extends CumulativeProtocolDecoder {
 		buf.put(String.format("Sec-WebSocket-Accept: %s", new String(accept)).getBytes());
 		buf.put(Constants.CRLF);
 		buf.put(Constants.CRLF);
-		// if any bytes follow this crlf, the follow-up data will be corrupted 
-		log.trace("Handshake response size: {}", buf.limit());
+		// if any bytes follow this crlf, the follow-up data will be corrupted
+		if (log.isTraceEnabled()) {
+			log.trace("Handshake response size: {}", buf.limit());
+		}
 		return new HandshakeResponse(buf);
 	}
 
@@ -349,7 +357,9 @@ public class WebSocketDecoder extends CumulativeProtocolDecoder {
 		buf.put("Sec-WebSocket-Version-Server: 13".getBytes());
 		buf.put(Constants.CRLF);
 		buf.put(Constants.CRLF);
-		log.trace("Handshake error response size: {}", buf.limit());
+		if (log.isTraceEnabled()) {
+			log.trace("Handshake error response size: {}", buf.limit());
+		}
 		return new HandshakeResponse(buf);
 	}
 
@@ -419,7 +429,7 @@ public class WebSocketDecoder extends CumulativeProtocolDecoder {
 		}
 		// ensure enough bytes left to fill payload, if masked add 4 additional bytes
 		if (decoderState.frameLen + (decoderState.mask == 1 ? 4 : 0) > in.remaining()) {
-			log.warn("Not enough data available to decode");
+			log.info("Not enough data available to decode, socket may be closed/closing");
 		} else {
 			// if the data is masked (xor'd)
 			if (decoderState.mask == 1) {
