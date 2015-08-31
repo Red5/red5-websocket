@@ -116,7 +116,7 @@ public class WebSocketConnection {
 	 */
 	public void send(String data) throws UnsupportedEncodingException {
 		log.trace("send message: {}", data);
-		Packet packet = Packet.build(data.getBytes(), MessageType.TEXT);
+		Packet packet = Packet.build(data.getBytes("UTF8"), MessageType.TEXT);
 		session.write(packet);
 	}
 
