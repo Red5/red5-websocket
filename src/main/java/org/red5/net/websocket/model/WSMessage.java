@@ -35,7 +35,7 @@ public class WSMessage {
 	 * @throws UnsupportedEncodingException
 	 */
 	public String getMessageAsString() throws UnsupportedEncodingException {
-		return new String(payload.array(), "UTF8").trim();
+		return new String(payload.array(), 0, payload.limit(), "UTF8");
 	}
 	
 	public MessageType getMessageType() {
