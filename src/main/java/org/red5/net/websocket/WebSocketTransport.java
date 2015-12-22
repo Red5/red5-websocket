@@ -40,6 +40,7 @@ import org.springframework.beans.factory.InitializingBean;
 
 /**
  * WebSocketTransport
+ * 
  * <pre>
  * this class will be instanced in red5.xml(or other xml files).
  * will make port listen...
@@ -49,149 +50,163 @@ import org.springframework.beans.factory.InitializingBean;
  * @author Paul Gregoire
  */
 public class WebSocketTransport implements InitializingBean, DisposableBean {
-	
-	private static final Logger log = LoggerFactory.getLogger(WebSocketTransport.class);
 
-	private int sendBufferSize = 2048;
+    private static final Logger log = LoggerFactory.getLogger(WebSocketTransport.class);
 
-	private int receiveBufferSize = 2048;
+    private int sendBufferSize = 2048;
 
-	@SuppressWarnings("unused")
-	private int connectionThreads = 8;
+    private int receiveBufferSize = 2048;
 
-	private int ioThreads = 16;
+    @SuppressWarnings("unused")
+    private int connectionThreads = 8;
 
-	private int port = 80;
-	
-	private Set<String> addresses = new HashSet<String>();
+    private int ioThreads = 16;
 
-	private IoHandlerAdapter ioHandler;
+    private int port = 80;
 
-	private SocketAcceptor acceptor;
-	
-	private SecureWebSocketConfiguration secureConfig;
+    private Set<String> addresses = new HashSet<String>();
 
-	/**
-	 * Creates the i/o handler and nio acceptor; ports and addresses are bound.
-	 * 
-	 * @throws IOException 
-	 */
-	@Override
-	public void afterPropertiesSet() throws Exception {
-		// create the nio acceptor
-		//acceptor = new NioSocketAcceptor(Executors.newFixedThreadPool(connectionThreads), new NioProcessor(Executors.newFixedThreadPool(ioThreads)));
-		acceptor = new NioSocketAcceptor(ioThreads);
-		// instance the websocket handler
-		if (ioHandler == null) {
-   			ioHandler = new WebSocketHandler();
-		}
-		log.trace("I/O handler: {}", ioHandler);	
-		DefaultIoFilterChainBuilder chain = acceptor.getFilterChain();
-		// if handling wss init the config
-		if (secureConfig != null) {
-			SslFilter sslFilter = secureConfig.getSslFilter();
-			chain.addFirst("sslFilter", sslFilter);
-		}
-		if (log.isTraceEnabled()) {
-			chain.addLast("logger", new LoggingFilter());
-		}
-		// add the websocket codec factory
-		chain.addLast("protocol", new ProtocolCodecFilter(new WebSocketCodecFactory()));
-		// close sessions when the acceptor is stopped
-		acceptor.setCloseOnDeactivation(true);
-		acceptor.setHandler(ioHandler);
-		// requested maximum length of the queue of incoming connections
-		acceptor.setBacklog(64);
-		SocketSessionConfig sessionConf = acceptor.getSessionConfig();
-		sessionConf.setReuseAddress(true);
-		sessionConf.setTcpNoDelay(true);
-		sessionConf.setReceiveBufferSize(receiveBufferSize);
-		sessionConf.setSendBufferSize(sendBufferSize);
-		acceptor.setReuseAddress(true);
-		if (addresses.isEmpty()) {
-			acceptor.bind(new InetSocketAddress(port));
-		} else {
-			try {
-				// loop through the addresses and bind
-				Set<InetSocketAddress> socketAddresses = new HashSet<InetSocketAddress>();
-				for (String addr : addresses) {
-					if (addr.indexOf(':') != -1) {
-						String[] parts = addr.split(":");
-						socketAddresses.add(new InetSocketAddress(parts[0], Integer.valueOf(parts[1])));
-					} else {
-						socketAddresses.add(new InetSocketAddress(addr, port));
-					}
-				}
-				log.debug("Binding to {}", socketAddresses.toString());
-				acceptor.bind(socketAddresses);
-			} catch (Exception e) {
-				log.error("Exception occurred during resolve / bind", e);
-			}			
-		}
-		log.info("started {} websocket transport", (isSecure() ? "secure" : ""));
-	}
+    private IoHandlerAdapter ioHandler;
 
-	/**
-	 * Ports and addresses are unbound (stop listening).
-	 */
-	@Override
-	public void destroy() throws Exception {		
-		log.info("stopped {} websocket transport", (isSecure() ? "secure" : ""));
-		acceptor.unbind();
-	}	
-	
-	public void setAddresses(List<String> addrs) {
-		for (String addr : addrs) {
-			addresses.add(addr);
-		}
-		log.info("WebSocket will be bound to {}", addresses);
-	}
+    private SocketAcceptor acceptor;
 
-	/**
-	 * @param port the port to set
-	 */
-	public void setPort(int port) {
-		this.port = port;
-	}
+    private SecureWebSocketConfiguration secureConfig;
 
-	/**
-	 * @param sendBufferSize the sendBufferSize to set
-	 */
-	public void setSendBufferSize(int sendBufferSize) {
-		this.sendBufferSize = sendBufferSize;
-	}
+    /**
+     * Creates the i/o handler and nio acceptor; ports and addresses are bound.
+     * 
+     * @throws IOException
+     */
+    @Override
+    public void afterPropertiesSet() throws Exception {
+        // create the nio acceptor
+        //acceptor = new NioSocketAcceptor(Executors.newFixedThreadPool(connectionThreads), new NioProcessor(Executors.newFixedThreadPool(ioThreads)));
+        acceptor = new NioSocketAcceptor(ioThreads);
+        // instance the websocket handler
+        if (ioHandler == null) {
+            ioHandler = new WebSocketHandler();
+        }
+        log.trace("I/O handler: {}", ioHandler);
+        DefaultIoFilterChainBuilder chain = acceptor.getFilterChain();
+        // if handling wss init the config
+        if (secureConfig != null) {
+            SslFilter sslFilter = secureConfig.getSslFilter();
+            chain.addFirst("sslFilter", sslFilter);
+        }
+        if (log.isTraceEnabled()) {
+            chain.addLast("logger", new LoggingFilter());
+        }
+        // add the websocket codec factory
+        chain.addLast("protocol", new ProtocolCodecFilter(new WebSocketCodecFactory()));
+        // close sessions when the acceptor is stopped
+        acceptor.setCloseOnDeactivation(true);
+        acceptor.setHandler(ioHandler);
+        // requested maximum length of the queue of incoming connections
+        acceptor.setBacklog(64);
+        SocketSessionConfig sessionConf = acceptor.getSessionConfig();
+        sessionConf.setReuseAddress(true);
+        sessionConf.setTcpNoDelay(true);
+        sessionConf.setReceiveBufferSize(receiveBufferSize);
+        sessionConf.setSendBufferSize(sendBufferSize);
+        acceptor.setReuseAddress(true);
+        if (addresses.isEmpty()) {
+            if (secureConfig != null) {
+                log.info("WebSocket (wss) will be bound to port {}", port);
+            } else {
+                log.info("WebSocket (ws) will be bound to port {}", port);
+            }
+            acceptor.bind(new InetSocketAddress(port));
+        } else {
+            if (secureConfig != null) {
+                log.info("WebSocket (wss) will be bound to {}", addresses);
+            } else {
+                log.info("WebSocket (ws) will be bound to {}", addresses);
+            }
+            try {
+                // loop through the addresses and bind
+                Set<InetSocketAddress> socketAddresses = new HashSet<InetSocketAddress>();
+                for (String addr : addresses) {
+                    if (addr.indexOf(':') != -1) {
+                        String[] parts = addr.split(":");
+                        socketAddresses.add(new InetSocketAddress(parts[0], Integer.valueOf(parts[1])));
+                    } else {
+                        socketAddresses.add(new InetSocketAddress(addr, port));
+                    }
+                }
+                log.debug("Binding to {}", socketAddresses.toString());
+                acceptor.bind(socketAddresses);
+            } catch (Exception e) {
+                log.error("Exception occurred during resolve / bind", e);
+            }
+        }
+        log.info("started {} websocket transport", (isSecure() ? "secure" : ""));
+    }
 
-	/**
-	 * @param receiveBufferSize the receiveBufferSize to set
-	 */
-	public void setReceiveBufferSize(int receiveBufferSize) {
-		this.receiveBufferSize = receiveBufferSize;
-	}
+    /**
+     * Ports and addresses are unbound (stop listening).
+     */
+    @Override
+    public void destroy() throws Exception {
+        log.info("stopped {} websocket transport", (isSecure() ? "secure" : ""));
+        acceptor.unbind();
+    }
 
-	/**
-	 * @param connectionThreads the connectionThreads to set
-	 */
-	public void setConnectionThreads(int connectionThreads) {
-		this.connectionThreads = connectionThreads;
-	}
+    public void setAddresses(List<String> addrs) {
+        for (String addr : addrs) {
+            addresses.add(addr);
+        }
+    }
 
-	/**
-	 * @param ioThreads the ioThreads to set
-	 */
-	public void setIoThreads(int ioThreads) {
-		this.ioThreads = ioThreads;
-	}
+    /**
+     * @param port
+     *            the port to set
+     */
+    public void setPort(int port) {
+        this.port = port;
+    }
 
-	public boolean isSecure() {
-		return secureConfig != null;
-	}
+    /**
+     * @param sendBufferSize
+     *            the sendBufferSize to set
+     */
+    public void setSendBufferSize(int sendBufferSize) {
+        this.sendBufferSize = sendBufferSize;
+    }
 
-	public void setIoHandler(IoHandlerAdapter ioHandler) {
-		this.ioHandler = ioHandler;
-	}
+    /**
+     * @param receiveBufferSize
+     *            the receiveBufferSize to set
+     */
+    public void setReceiveBufferSize(int receiveBufferSize) {
+        this.receiveBufferSize = receiveBufferSize;
+    }
 
-	public void setSecureConfig(SecureWebSocketConfiguration secureConfig) {
-		this.secureConfig = secureConfig;
-	}
-	
+    /**
+     * @param connectionThreads
+     *            the connectionThreads to set
+     */
+    public void setConnectionThreads(int connectionThreads) {
+        this.connectionThreads = connectionThreads;
+    }
+
+    /**
+     * @param ioThreads
+     *            the ioThreads to set
+     */
+    public void setIoThreads(int ioThreads) {
+        this.ioThreads = ioThreads;
+    }
+
+    public boolean isSecure() {
+        return secureConfig != null;
+    }
+
+    public void setIoHandler(IoHandlerAdapter ioHandler) {
+        this.ioHandler = ioHandler;
+    }
+
+    public void setSecureConfig(SecureWebSocketConfiguration secureConfig) {
+        this.secureConfig = secureConfig;
+    }
+
 }

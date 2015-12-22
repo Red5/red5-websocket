@@ -30,26 +30,26 @@ import org.bouncycastle.crypto.prng.DigestRandomGenerator;
  */
 public class IdGenerator {
 
-	private static final DigestRandomGenerator random = new DigestRandomGenerator(new SHA1Digest());
-	
-	/**
-	 * Returns a cryptographically generated id.
-	 * 
-	 * @return id
-	 */
-	public static final long generateId() {
-		long id = 0;
-		// add new seed material from current time
-		random.addSeedMaterial(ThreadLocalRandom.current().nextLong());
-		// get a new id
-		byte[] bytes = new byte[16];
-		// get random bytes
-		random.nextBytes(bytes);
-		for (int i = 0; i < bytes.length; i++)	{
-		   id += ((long) bytes[i] & 0xffL) << (8 * i);
-		}
-		//System.out.println("Id: " + id);
-		return id;
-	}
-	
+    private static final DigestRandomGenerator random = new DigestRandomGenerator(new SHA1Digest());
+
+    /**
+     * Returns a cryptographically generated id.
+     * 
+     * @return id
+     */
+    public static final long generateId() {
+        long id = 0;
+        // add new seed material from current time
+        random.addSeedMaterial(ThreadLocalRandom.current().nextLong());
+        // get a new id
+        byte[] bytes = new byte[16];
+        // get random bytes
+        random.nextBytes(bytes);
+        for (int i = 0; i < bytes.length; i++) {
+            id += ((long) bytes[i] & 0xffL) << (8 * i);
+        }
+        //System.out.println("Id: " + id);
+        return id;
+    }
+
 }

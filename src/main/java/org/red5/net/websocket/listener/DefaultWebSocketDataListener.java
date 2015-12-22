@@ -37,35 +37,35 @@ import org.slf4j.LoggerFactory;
  */
 public class DefaultWebSocketDataListener extends WebSocketDataListener {
 
-	private static final Logger log = LoggerFactory.getLogger(DefaultWebSocketDataListener.class);
+    private static final Logger log = LoggerFactory.getLogger(DefaultWebSocketDataListener.class);
 
-	@Override
-	public void onWSConnect(WebSocketConnection conn) {
-		log.info("Connect: {}", conn);
-	}
+    @Override
+    public void onWSConnect(WebSocketConnection conn) {
+        log.info("Connect: {}", conn);
+    }
 
-	@Override
-	public void onWSDisconnect(WebSocketConnection conn) {
-		log.info("Disconnect: {}", conn);
-	}
+    @Override
+    public void onWSDisconnect(WebSocketConnection conn) {
+        log.info("Disconnect: {}", conn);
+    }
 
-	@Override
-	public void onWSMessage(WSMessage message) {
-		// assume we have text
-		String msg = new String(message.getPayload().array());
-		log.info("onWSMessage: {}", msg);
-		// just echo back the message
-		WebSocketScopeManager manager = ((WebSocketPlugin) PluginRegistry.getPlugin("WebSocketPlugin")).getManager();
-		WebSocketScope scope = manager.getScope(message.getPath());
-		Set<WebSocketConnection> conns = scope.getConns();
-		for (WebSocketConnection conn : conns) {
-			log.debug("Echoing to {}", conn);
-			try {
-				conn.send(msg);
-			} catch (UnsupportedEncodingException e) {
-				log.warn("Encoding issue with the message data: {}", message, e);
-			}
-		}
-	}
-	
+    @Override
+    public void onWSMessage(WSMessage message) {
+        // assume we have text
+        String msg = new String(message.getPayload().array());
+        log.info("onWSMessage: {}", msg);
+        // just echo back the message
+        WebSocketScopeManager manager = ((WebSocketPlugin) PluginRegistry.getPlugin("WebSocketPlugin")).getManager();
+        WebSocketScope scope = manager.getScope(message.getPath());
+        Set<WebSocketConnection> conns = scope.getConns();
+        for (WebSocketConnection conn : conns) {
+            log.debug("Echoing to {}", conn);
+            try {
+                conn.send(msg);
+            } catch (UnsupportedEncodingException e) {
+                log.warn("Encoding issue with the message data: {}", message, e);
+            }
+        }
+    }
+
 }

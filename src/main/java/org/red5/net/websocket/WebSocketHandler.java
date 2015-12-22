@@ -27,59 +27,61 @@ import org.slf4j.LoggerFactory;
 
 /**
  * WebSocketHandler
+ * 
  * <pre>
  * IoHandlerAdapter for webSocket
  * </pre>
+ * 
  * @author Toda Takahiko
  * @author Paul Gregoire
  */
 public class WebSocketHandler extends IoHandlerAdapter {
 
-	private static final Logger log = LoggerFactory.getLogger(WebSocketHandler.class);
+    private static final Logger log = LoggerFactory.getLogger(WebSocketHandler.class);
 
-	/**
-	 * {@inheritDoc}
-	 */
-	@Override
-	public void messageReceived(IoSession session, Object message) throws Exception {
-		log.trace("Message received on session: {}", session.getId());
-		if (message instanceof WSMessage) {
-			WebSocketConnection conn = (WebSocketConnection) session.getAttribute("connection");
-			if (conn != null) {
-				conn.receive((WSMessage) message);
-			}
-		}
-	}
-	
-	/**
-	 * {@inheritDoc}
-	 */
-	@Override
-    public void messageSent(IoSession session, Object message) throws Exception {
-		log.trace("Message sent on session: {}", session.getId());
-		log.trace("Session read: {} write: {}", session.getReadBytes(), session.getWrittenBytes());
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void messageReceived(IoSession session, Object message) throws Exception {
+        log.trace("Message received on session: {}", session.getId());
+        if (message instanceof WSMessage) {
+            WebSocketConnection conn = (WebSocketConnection) session.getAttribute("connection");
+            if (conn != null) {
+                conn.receive((WSMessage) message);
+            }
+        }
     }
-	
-	/**
-	 * {@inheritDoc}
-	 */
-	@Override
-	public void sessionClosed(IoSession session) throws Exception {
-		log.trace("Session closed");
-		// remove connection from scope
-		WebSocketConnection conn = (WebSocketConnection) session.getAttribute("connection");
-		// remove from the manager
-		WebSocketScopeManager manager = ((WebSocketPlugin) PluginRegistry.getPlugin("WebSocketPlugin")).getManager();
-		manager.removeConnection(conn);
-		super.sessionClosed(session);
-	}
 
-	/**
-	 * {@inheritDoc}
-	 */
-	@Override
-	public void exceptionCaught(IoSession session, Throwable cause) throws Exception {
-		log.error("exception", cause);
-	}	
-	
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void messageSent(IoSession session, Object message) throws Exception {
+        log.trace("Message sent on session: {}", session.getId());
+        log.trace("Session read: {} write: {}", session.getReadBytes(), session.getWrittenBytes());
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void sessionClosed(IoSession session) throws Exception {
+        log.trace("Session closed");
+        // remove connection from scope
+        WebSocketConnection conn = (WebSocketConnection) session.getAttribute("connection");
+        // remove from the manager
+        WebSocketScopeManager manager = ((WebSocketPlugin) PluginRegistry.getPlugin("WebSocketPlugin")).getManager();
+        manager.removeConnection(conn);
+        super.sessionClosed(session);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void exceptionCaught(IoSession session, Throwable cause) throws Exception {
+        log.error("exception", cause);
+    }
+
 }

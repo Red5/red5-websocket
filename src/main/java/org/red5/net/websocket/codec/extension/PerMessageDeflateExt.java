@@ -10,11 +10,11 @@ package org.red5.net.websocket.codec.extension;
  */
 public class PerMessageDeflateExt implements WebSocketExtension {
 
-	private static final String id = "permessage-deflate";
+    private static final String id = "permessage-deflate";
 
-	/** {@inheritDoc} */
-	public String getId() {
-		return id;
-	}
-	
+    /** {@inheritDoc} */
+    public String getId() {
+        return id;
+    }
+
 }

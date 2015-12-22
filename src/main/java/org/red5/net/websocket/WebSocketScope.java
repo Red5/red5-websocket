@@ -31,173 +31,178 @@ import org.slf4j.LoggerFactory;
 
 public class WebSocketScope {
 
-	private static final Logger log = LoggerFactory.getLogger(WebSocketScope.class);
-	
-	private String path;
+    private static final Logger log = LoggerFactory.getLogger(WebSocketScope.class);
 
-	private Set<WebSocketConnection> conns = new HashSet<WebSocketConnection>();
+    private String path;
 
-	private Set<IWebSocketDataListener> listeners = new HashSet<IWebSocketDataListener>();
+    private Set<WebSocketConnection> conns = new HashSet<WebSocketConnection>();
 
-	/**
-	 * Registers with the WebSocketScopeManager.
-	 */
-	public void register() {
-		WebSocketScopeManager manager = ((WebSocketPlugin) PluginRegistry.getPlugin("WebSocketPlugin")).getManager();
-		manager.addWebSocketScope(this);
-	}
-	
-	/**
-	 * Un-registers from the WebSocketScopeManager.
-	 */
-	public void unregister() {
-		WebSocketScopeManager manager = ((WebSocketPlugin) PluginRegistry.getPlugin("WebSocketPlugin")).getManager();
-		manager.removeWebSocketScope(this);		
-	}
-	
-	/**
-	 * Returns the set of connections.
-	 * 
-	 * @return conns
-	 */
-	public Set<WebSocketConnection> getConns() {
-		return conns;
-	}
+    private Set<IWebSocketDataListener> listeners = new HashSet<IWebSocketDataListener>();
 
-	/**
-	 * Sets the path.
-	 * 
-	 * @param path
-	 */
-	public void setPath(String path) {
-		this.path = path; // /room/name
-	}
-	
-	/**
-	 * Returns the path of the scope.
-	 * 
-	 * @return path
-	 */
-	public String getPath() {
-		return path;
-	}
+    /**
+     * Registers with the WebSocketScopeManager.
+     */
+    public void register() {
+        WebSocketScopeManager manager = ((WebSocketPlugin) PluginRegistry.getPlugin("WebSocketPlugin")).getManager();
+        manager.addWebSocketScope(this);
+    }
 
-	/**
-	 * Add new connection on scope.
-	 * 
-	 * @param conn WebSocketConnection
-	 */
-	public void addConnection(WebSocketConnection conn) {
-		conns.add(conn);
-		for (IWebSocketDataListener listener : listeners) {
-			listener.onWSConnect(conn);
-		}
-	}
+    /**
+     * Un-registers from the WebSocketScopeManager.
+     */
+    public void unregister() {
+        WebSocketScopeManager manager = ((WebSocketPlugin) PluginRegistry.getPlugin("WebSocketPlugin")).getManager();
+        manager.removeWebSocketScope(this);
+    }
 
-	/**
-	 * Remove connection from scope.
-	 * 
-	 * @param conn WebSocketConnection
-	 */
-	public void removeConnection(WebSocketConnection conn) {
-		conns.remove(conn);
-		for (IWebSocketDataListener listener : listeners) {
-			listener.onWSDisconnect(conn);
-		}
-	}
+    /**
+     * Returns the set of connections.
+     * 
+     * @return conns
+     */
+    public Set<WebSocketConnection> getConns() {
+        return conns;
+    }
 
-	/**
-	 * Add new listener on scope.
-	 * 
-	 * @param listener IWebSocketDataListener
-	 */
-	public void addListener(IWebSocketDataListener listener) {
-		log.info("addListener: {}", listener);
-		listeners.add(listener);
-	}
+    /**
+     * Sets the path.
+     * 
+     * @param path
+     */
+    public void setPath(String path) {
+        this.path = path; // /room/name
+    }
 
-	/**
-	 * Remove listener from scope.
-	 * 
-	 * @param listener IWebSocketDataListener
-	 */
-	public void removeListener(IWebSocketDataListener listener) {
-		log.info("removeListener: {}", listener);
-		listeners.remove(listener);
-	}
-	
-	/**
-	 * Add new listeners on scope.
-	 * 
-	 * @param listenerList list of IWebSocketDataListener
-	 */	
-	public void setListeners(Collection<IWebSocketDataListener> listeners) {
-		log.trace("setListeners: {}", listeners);
-		this.listeners.addAll(listeners);
-	}
+    /**
+     * Returns the path of the scope.
+     * 
+     * @return path
+     */
+    public String getPath() {
+        return path;
+    }
 
-	/**
-	 * Returns the listeners in an unmodifiable set.
-	 * 
-	 * @return listeners
-	 */
-	public Set<IWebSocketDataListener> getListeners() {
-		return Collections.unmodifiableSet(listeners);
-	}
-	
-	/**
-	 * Check the scope state.
-	 * 
-	 * @return true:still have relation
-	 */
-	public boolean isValid() {
-		return (conns.size() + listeners.size()) > 0;
-	}
+    /**
+     * Add new connection on scope.
+     * 
+     * @param conn
+     *            WebSocketConnection
+     */
+    public void addConnection(WebSocketConnection conn) {
+        conns.add(conn);
+        for (IWebSocketDataListener listener : listeners) {
+            listener.onWSConnect(conn);
+        }
+    }
 
-	/**
-	 * Message received from client and passed on to the listeners.
-	 * 
-	 * @param message
-	 */
-	public void onMessage(WSMessage message) {
-		log.trace("Listeners: {}", listeners.size());
-		for (IWebSocketDataListener listener : listeners) {
-			try {
-				listener.onWSMessage(message);
-			} catch (Exception e) {
-				log.warn("onMessage exception", e);
-			}
-		}
-	}
+    /**
+     * Remove connection from scope.
+     * 
+     * @param conn
+     *            WebSocketConnection
+     */
+    public void removeConnection(WebSocketConnection conn) {
+        conns.remove(conn);
+        for (IWebSocketDataListener listener : listeners) {
+            listener.onWSDisconnect(conn);
+        }
+    }
 
-	@Override
-	public int hashCode() {
-		final int prime = 31;
-		int result = 1;
-		result = prime * result + ((path == null) ? 0 : path.hashCode());
-		return result;
-	}
+    /**
+     * Add new listener on scope.
+     * 
+     * @param listener
+     *            IWebSocketDataListener
+     */
+    public void addListener(IWebSocketDataListener listener) {
+        log.info("addListener: {}", listener);
+        listeners.add(listener);
+    }
 
-	@Override
-	public boolean equals(Object obj) {
-		if (this == obj)
-			return true;
-		if (obj == null)
-			return false;
-		if (getClass() != obj.getClass())
-			return false;
-		WebSocketScope other = (WebSocketScope) obj;
-		if (path == null) {
-			if (other.path != null)
-				return false;
-		} else if (!path.equals(other.path))
-			return false;
-		return true;
-	}
+    /**
+     * Remove listener from scope.
+     * 
+     * @param listener
+     *            IWebSocketDataListener
+     */
+    public void removeListener(IWebSocketDataListener listener) {
+        log.info("removeListener: {}", listener);
+        listeners.remove(listener);
+    }
 
-	@Override
-	public String toString() {
-		return "WebSocketScope [path=" + path + ", listeners=" + listeners.size()  + ", connections=" + conns.size() + "]";
-	}
-	
+    /**
+     * Add new listeners on scope.
+     * 
+     * @param listenerList
+     *            list of IWebSocketDataListener
+     */
+    public void setListeners(Collection<IWebSocketDataListener> listeners) {
+        log.trace("setListeners: {}", listeners);
+        this.listeners.addAll(listeners);
+    }
+
+    /**
+     * Returns the listeners in an unmodifiable set.
+     * 
+     * @return listeners
+     */
+    public Set<IWebSocketDataListener> getListeners() {
+        return Collections.unmodifiableSet(listeners);
+    }
+
+    /**
+     * Check the scope state.
+     * 
+     * @return true:still have relation
+     */
+    public boolean isValid() {
+        return (conns.size() + listeners.size()) > 0;
+    }
+
+    /**
+     * Message received from client and passed on to the listeners.
+     * 
+     * @param message
+     */
+    public void onMessage(WSMessage message) {
+        log.trace("Listeners: {}", listeners.size());
+        for (IWebSocketDataListener listener : listeners) {
+            try {
+                listener.onWSMessage(message);
+            } catch (Exception e) {
+                log.warn("onMessage exception", e);
+            }
+        }
+    }
+
+    @Override
+    public int hashCode() {
+        final int prime = 31;
+        int result = 1;
+        result = prime * result + ((path == null) ? 0 : path.hashCode());
+        return result;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj)
+            return true;
+        if (obj == null)
+            return false;
+        if (getClass() != obj.getClass())
+            return false;
+        WebSocketScope other = (WebSocketScope) obj;
+        if (path == null) {
+            if (other.path != null)
+                return false;
+        } else if (!path.equals(other.path))
+            return false;
+        return true;
+    }
+
+    @Override
+    public String toString() {
+        return "WebSocketScope [path=" + path + ", listeners=" + listeners.size() + ", connections=" + conns.size() + "]";
+    }
+
 }

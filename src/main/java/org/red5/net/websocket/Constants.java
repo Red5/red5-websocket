@@ -25,30 +25,29 @@ package org.red5.net.websocket;
  */
 public class Constants {
 
-	public final static String CONNECTION = "connection";
-	
-	public final static String SESSION = "session";
-	
-	public final static String WS_HEADER_KEY = "Sec-WebSocket-Key";
+    public final static String CONNECTION = "connection";
 
-	public final static String WS_HEADER_VERSION = "Sec-WebSocket-Version";
+    public final static String SESSION = "session";
 
-	public final static String WS_HEADER_EXTENSIONS = "Sec-WebSocket-Extensions";
+    public final static String WS_HEADER_KEY = "Sec-WebSocket-Key";
 
-	public final static String WS_HEADER_PROTOCOL = "Sec-WebSocket-Protocol";
-	
-	public final static String HTTP_HEADER_HOST = "Host";
+    public final static String WS_HEADER_VERSION = "Sec-WebSocket-Version";
 
-	public final static String HTTP_HEADER_ORIGIN = "Origin";
+    public final static String WS_HEADER_EXTENSIONS = "Sec-WebSocket-Extensions";
 
-	public final static String HTTP_HEADER_USERAGENT = "User-Agent";
+    public final static String WS_HEADER_PROTOCOL = "Sec-WebSocket-Protocol";
 
-	public static final String URI_QS_PARAMETERS = "querystring-parameters";
+    public final static String HTTP_HEADER_HOST = "Host";
 
-	// magic string for websockets
-	public static final String WEBSOCKET_MAGIC_STRING = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
-	
-	public static final byte[] CRLF = { 0x0D, 0x0A };
+    public final static String HTTP_HEADER_ORIGIN = "Origin";
 
-	
+    public final static String HTTP_HEADER_USERAGENT = "User-Agent";
+
+    public static final String URI_QS_PARAMETERS = "querystring-parameters";
+
+    // magic string for websockets
+    public static final String WEBSOCKET_MAGIC_STRING = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
+
+    public static final byte[] CRLF = { 0x0D, 0x0A };
+
 }

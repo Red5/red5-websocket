@@ -26,39 +26,41 @@ import org.red5.net.websocket.model.WSMessage;
  */
 public interface IWebSocketDataListener {
 
-	/**
-	 * Returns the protocol for which this listener is interested.
-	 * 
-	 * @return protocol
-	 */
-	public String getProtocol();
+    /**
+     * Returns the protocol for which this listener is interested.
+     * 
+     * @return protocol
+     */
+    public String getProtocol();
 
-	/**
-	 * Sets the protocol for which this listener is interested.
-	 * 
-	 * @param protocol
-	 */	
-	public void setProtocol(String protocol);
-	
-	/**
-	 * Dispatch message.
-	 * 
-	 * @param message
-	 */
-	public void onWSMessage(WSMessage message);
+    /**
+     * Sets the protocol for which this listener is interested.
+     * 
+     * @param protocol
+     */
+    public void setProtocol(String protocol);
 
-	/**
-	 * Connect a WebSocket client.
-	 * 
-	 * @param conn WebSocketConnection
-	 */
-	public void onWSConnect(WebSocketConnection conn);
+    /**
+     * Dispatch message.
+     * 
+     * @param message
+     */
+    public void onWSMessage(WSMessage message);
 
-	/**
-	 * Disconnect WebSocket client.
-	 * 
-	 * @param conn WebSocketConnection
-	 */
-	public void onWSDisconnect(WebSocketConnection conn);
-	
+    /**
+     * Connect a WebSocket client.
+     * 
+     * @param conn
+     *            WebSocketConnection
+     */
+    public void onWSConnect(WebSocketConnection conn);
+
+    /**
+     * Disconnect WebSocket client.
+     * 
+     * @param conn
+     *            WebSocketConnection
+     */
+    public void onWSDisconnect(WebSocketConnection conn);
+
 }

@@ -27,15 +27,15 @@ import org.apache.mina.core.buffer.IoBuffer;
  */
 public class HandshakeRequest {
 
-	private final IoBuffer req;
+    private final IoBuffer req;
 
-	public HandshakeRequest(IoBuffer req) {
-		this.req = req;
-		req.flip();
-	}
+    public HandshakeRequest(IoBuffer req) {
+        this.req = req;
+        req.flip();
+    }
 
-	public IoBuffer getRequest() {
-		return req;
-	}
+    public IoBuffer getRequest() {
+        return req;
+    }
 
 }

@@ -20,6 +20,6 @@ package org.red5.net.websocket.model;
 
 public enum ConnectionType {
 
-	DIRECT, WEB;
-	
+    DIRECT, WEB;
+
 }

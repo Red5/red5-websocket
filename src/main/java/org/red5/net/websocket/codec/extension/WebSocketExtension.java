@@ -7,11 +7,11 @@ package org.red5.net.websocket.codec.extension;
  */
 public interface WebSocketExtension {
 
-	/**
-	 * Returns the extensions identifying string.
-	 * 
-	 * @return id
-	 */
-	String getId();
+    /**
+     * Returns the extensions identifying string.
+     * 
+     * @return id
+     */
+    String getId();
 
 }

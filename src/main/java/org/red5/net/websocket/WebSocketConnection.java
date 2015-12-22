@@ -36,6 +36,7 @@ import org.slf4j.LoggerFactory;
 
 /**
  * WebSocketConnection
+ * 
  * <pre>
  * This class represents a WebSocket connection with a client (browser).
  * </pre>
@@ -44,316 +45,320 @@ import org.slf4j.LoggerFactory;
  */
 public class WebSocketConnection {
 
-	private static final Logger log = LoggerFactory.getLogger(WebSocketConnection.class);
-	
-	// session id
-	private final long id = IdGenerator.generateId();
+    private static final Logger log = LoggerFactory.getLogger(WebSocketConnection.class);
 
-	// type of this connection; default is web / http
-	private ConnectionType type = ConnectionType.WEB;
+    // session id
+    private final long id = IdGenerator.generateId();
 
-	private boolean connected;
+    // type of this connection; default is web / http
+    private ConnectionType type = ConnectionType.WEB;
 
-	private IoSession session;
+    private boolean connected;
 
-	private String host;
+    private IoSession session;
 
-	private String path;
+    private String host;
 
-	private String origin;
+    private String path;
 
-	// secure or not
-	private boolean secure;
+    private String origin;
 
-	/**
-	 * Contains http headers and other web-socket information from the initial request.
-	 */
-	private Map<String, Object> headers;
+    // secure or not
+    private boolean secure;
 
-	/**
-	 * Contains uri parameters from the initial request.
-	 */
-	private Map<String, Object> querystringParameters;
+    /**
+     * Contains http headers and other web-socket information from the initial request.
+     */
+    private Map<String, Object> headers;
 
-	/**
-	 * Extensions enabled on this connection.
-	 */
-	private Map<String, Object> extensions;	
-	
-	/**
-	 * Connection protocol (ex. chat, json, etc)
-	 */
-	private String protocol;
-	
-	/**
-	 * constructor
-	 */
-	public WebSocketConnection(IoSession session) {
-		this.session = session;
-	}	
-	
-	/**
-	 * Receive data from a client.
-	 * 
-	 * @param message
-	 */
-	public void receive(WSMessage message) {
-		log.trace("receive message");
-		if (isConnected()) {
-			WebSocketScopeManager manager = ((WebSocketPlugin) PluginRegistry.getPlugin("WebSocketPlugin")).getManager();
-			WebSocketScope scope = manager.getScope(getPath());
-			scope.onMessage(message);
-		} else {
-			log.warn("Not connected");
-		}
-	}
-	
-	/**
-	 * Sends text to the client.
-	 * 
-	 * @param data string data
-	 * @throws UnsupportedEncodingException 
-	 */
-	public void send(String data) throws UnsupportedEncodingException {
-		log.trace("send message: {}", data);
-		Packet packet = Packet.build(data.getBytes("UTF8"), MessageType.TEXT);
-		session.write(packet);
-	}
+    /**
+     * Contains uri parameters from the initial request.
+     */
+    private Map<String, Object> querystringParameters;
 
-	/**
-	 * Sends binary data to the client.
-	 * 
-	 * @param buf
-	 */
-	public void send(byte[] buf) {
-		log.trace("send binary: {}", Arrays.toString(buf));
-		Packet packet = Packet.build(buf);
-		session.write(packet);
-	}
-	
-	/**
-	 * Sends a pong back to the client; normally in response to a ping.
-	 * 
-	 * @param buf
-	 */
-	public void sendPong(byte[] buf) {
-		log.trace("send pong: {}", buf);
-		Packet packet = Packet.build(buf, MessageType.PONG);
-		session.write(packet);		
-	}
+    /**
+     * Extensions enabled on this connection.
+     */
+    private Map<String, Object> extensions;
 
-	/**
-	 * close Connection
-	 */
-	public void close() {
-		CloseFuture future = session.close(true);
-		future.addListener(new IoFutureListener<CloseFuture>() {
-			public void operationComplete(CloseFuture future) {
-				if (future.isClosed()) {
-					log.debug("Connection is closed");
-				} else {
-					log.debug("Connection is not yet closed");
-				}
-				future.removeListener(this);
-				connected = false;
-			}
-		});
-	}	
+    /**
+     * Connection protocol (ex. chat, json, etc)
+     */
+    private String protocol;
 
-	public ConnectionType getType() {
-		return type;
-	}
+    /**
+     * constructor
+     */
+    public WebSocketConnection(IoSession session) {
+        this.session = session;
+    }
 
-	public void setType(ConnectionType type) {
-		this.type = type;
-	}
+    /**
+     * Receive data from a client.
+     * 
+     * @param message
+     */
+    public void receive(WSMessage message) {
+        log.trace("receive message");
+        if (isConnected()) {
+            WebSocketScopeManager manager = ((WebSocketPlugin) PluginRegistry.getPlugin("WebSocketPlugin")).getManager();
+            WebSocketScope scope = manager.getScope(getPath());
+            scope.onMessage(message);
+        } else {
+            log.warn("Not connected");
+        }
+    }
 
-	/**
-	 * @return the connected
-	 */
-	public boolean isConnected() {
-		return connected;
-	}
+    /**
+     * Sends text to the client.
+     * 
+     * @param data
+     *            string data
+     * @throws UnsupportedEncodingException
+     */
+    public void send(String data) throws UnsupportedEncodingException {
+        log.trace("send message: {}", data);
+        Packet packet = Packet.build(data.getBytes("UTF8"), MessageType.TEXT);
+        session.write(packet);
+    }
 
-	/**
-	 * on connected, put flg and clear keys.
-	 */
-	public void setConnected() {
-		connected = true;
-	}
+    /**
+     * Sends binary data to the client.
+     * 
+     * @param buf
+     */
+    public void send(byte[] buf) {
+        log.trace("send binary: {}", Arrays.toString(buf));
+        Packet packet = Packet.build(buf);
+        session.write(packet);
+    }
 
-	/**
-	 * @return the host
-	 */
-	public String getHost() {
-		return String.format("%s://%s%s", (secure ? "wss" : "ws"), host, path);
-	}
+    /**
+     * Sends a pong back to the client; normally in response to a ping.
+     * 
+     * @param buf
+     */
+    public void sendPong(byte[] buf) {
+        log.trace("send pong: {}", buf);
+        Packet packet = Packet.build(buf, MessageType.PONG);
+        session.write(packet);
+    }
 
-	/**
-	 * @param host the host to set
-	 */
-	public void setHost(String host) {
-		this.host = host;
-	}
+    /**
+     * close Connection
+     */
+    public void close() {
+        CloseFuture future = session.close(true);
+        future.addListener(new IoFutureListener<CloseFuture>() {
+            public void operationComplete(CloseFuture future) {
+                if (future.isClosed()) {
+                    log.debug("Connection is closed");
+                } else {
+                    log.debug("Connection is not yet closed");
+                }
+                future.removeListener(this);
+                connected = false;
+            }
+        });
+    }
 
-	/**
-	 * @return the origin
-	 */
-	public String getOrigin() {
-		return origin;
-	}
+    public ConnectionType getType() {
+        return type;
+    }
 
-	/**
-	 * @param origin the origin to set
-	 */
-	public void setOrigin(String origin) {
-		this.origin = origin;
-	}
+    public void setType(ConnectionType type) {
+        this.type = type;
+    }
 
-	public boolean isSecure() {
-		return secure;
-	}
+    /**
+     * @return the connected
+     */
+    public boolean isConnected() {
+        return connected;
+    }
 
-	public void setSecure(boolean secure) {
-		this.secure = secure;
-	}
+    /**
+     * on connected, put flg and clear keys.
+     */
+    public void setConnected() {
+        connected = true;
+    }
 
-	/**
-	 * @return the session
-	 */
-	public IoSession getSession() {
-		return session;
-	}
+    /**
+     * @return the host
+     */
+    public String getHost() {
+        return String.format("%s://%s%s", (secure ? "wss" : "ws"), host, path);
+    }
 
-	public String getPath() {
-		return path;
-	}
+    /**
+     * @param host
+     *            the host to set
+     */
+    public void setHost(String host) {
+        this.host = host;
+    }
 
-	/**
-	 * @param path the path to set
-	 */
-	public void setPath(String path) {
-		if (path.charAt(path.length() - 1) == '/') {
-			this.path = path.substring(0, path.length() - 1);
-		} else {
-			this.path = path;
-		}
-	}
+    /**
+     * @return the origin
+     */
+    public String getOrigin() {
+        return origin;
+    }
 
-	/**
-	 * Returns the connection id.
-	 * 
-	 * @return id
-	 */
-	public long getId() {
-		return id;
-	}
+    /**
+     * @param origin
+     *            the origin to set
+     */
+    public void setOrigin(String origin) {
+        this.origin = origin;
+    }
 
-	/**
-	 * Returns true if this connection is a web-based connection.
-	 * 
-	 * @return true if web and false if direct
-	 */
-	public boolean isWebConnection() {
-		return type == ConnectionType.WEB;
-	}
+    public boolean isSecure() {
+        return secure;
+    }
 
-	/**
-	 * Sets the incoming headers.
-	 * 
-	 * @param headers
-	 */
-	public void setHeaders(Map<String, Object> headers) {
-		this.headers = headers;
-	}
+    public void setSecure(boolean secure) {
+        this.secure = secure;
+    }
 
-	public Map<String, Object> getHeaders() {
-		return headers;
-	}
+    /**
+     * @return the session
+     */
+    public IoSession getSession() {
+        return session;
+    }
 
-	public Map<String, Object> getQuerystringParameters() {
-		return querystringParameters;
-	}
+    public String getPath() {
+        return path;
+    }
 
-	public void setQuerystringParameters(Map<String, Object> querystringParameters) {
-		this.querystringParameters = querystringParameters;
-	}
+    /**
+     * @param path
+     *            the path to set
+     */
+    public void setPath(String path) {
+        if (path.charAt(path.length() - 1) == '/') {
+            this.path = path.substring(0, path.length() - 1);
+        } else {
+            this.path = path;
+        }
+    }
 
-	/**
-	 * Returns whether or not extensions are enabled on this connection.
-	 * 
-	 * @return true if extensions are enabled, false otherwise
-	 */
-	public boolean hasExtensions() {
-		return extensions != null && !extensions.isEmpty();
-	}
+    /**
+     * Returns the connection id.
+     * 
+     * @return id
+     */
+    public long getId() {
+        return id;
+    }
 
-	/**
-	 * Returns enabled extensions.
-	 * 
-	 * @return extensions
-	 */
-	public Map<String, Object> getExtensions() {
-		return extensions;
-	}
+    /**
+     * Returns true if this connection is a web-based connection.
+     * 
+     * @return true if web and false if direct
+     */
+    public boolean isWebConnection() {
+        return type == ConnectionType.WEB;
+    }
 
-	/**
-	 * Sets the extensions.
-	 * 
-	 * @param extensions
-	 */
-	public void setExtensions(Map<String, Object> extensions) {
-		this.extensions = extensions;
-	}
+    /**
+     * Sets the incoming headers.
+     * 
+     * @param headers
+     */
+    public void setHeaders(Map<String, Object> headers) {
+        this.headers = headers;
+    }
 
-	/**
-	 * Returns the extensions list as a comma separated string as specified by the rfc.
-	 * 
-	 * @return extension list string or null if no extensions are enabled
-	 */
-	public String getExtensionsAsString() {
-		String extensionsList = null;
-		if (extensions != null) {
-			StringBuilder sb = new StringBuilder();
-    		for (String key : extensions.keySet()) {
-    			sb.append(key);
-    			sb.append("; ");
-    		}
-    		extensionsList = sb.toString().trim();
-		}
-		return extensionsList;
-	}
+    public Map<String, Object> getHeaders() {
+        return headers;
+    }
 
-	/**
-	 * Returns whether or not a protocol is enabled on this connection.
-	 * 
-	 * @return true if protocol is enabled, false otherwise
-	 */
-	public boolean hasProtocol() {
-		return protocol != null;
-	}
+    public Map<String, Object> getQuerystringParameters() {
+        return querystringParameters;
+    }
 
-	/**
-	 * Returns the protocol enabled on this connection.
-	 * 
-	 * @return protocol
-	 */
-	public String getProtocol() {
-		return protocol;
-	}	
+    public void setQuerystringParameters(Map<String, Object> querystringParameters) {
+        this.querystringParameters = querystringParameters;
+    }
 
-	/**
-	 * Sets the protocol.
-	 * 
-	 * @param protocol
-	 */
-	public void setProtocol(String protocol) {
-		this.protocol = protocol;
-	}
+    /**
+     * Returns whether or not extensions are enabled on this connection.
+     * 
+     * @return true if extensions are enabled, false otherwise
+     */
+    public boolean hasExtensions() {
+        return extensions != null && !extensions.isEmpty();
+    }
 
-	@Override
-	public String toString() {
-		return "WebSocketConnection [id=" + id + ", type=" + type + ", host=" + host + ", origin=" + origin + ", path=" + path + ", secure=" + secure + ", connected=" + connected + ", remote=" + (session != null ? session.getRemoteAddress().toString() : "unk") + "]";
-	}
+    /**
+     * Returns enabled extensions.
+     * 
+     * @return extensions
+     */
+    public Map<String, Object> getExtensions() {
+        return extensions;
+    }
+
+    /**
+     * Sets the extensions.
+     * 
+     * @param extensions
+     */
+    public void setExtensions(Map<String, Object> extensions) {
+        this.extensions = extensions;
+    }
+
+    /**
+     * Returns the extensions list as a comma separated string as specified by the rfc.
+     * 
+     * @return extension list string or null if no extensions are enabled
+     */
+    public String getExtensionsAsString() {
+        String extensionsList = null;
+        if (extensions != null) {
+            StringBuilder sb = new StringBuilder();
+            for (String key : extensions.keySet()) {
+                sb.append(key);
+                sb.append("; ");
+            }
+            extensionsList = sb.toString().trim();
+        }
+        return extensionsList;
+    }
+
+    /**
+     * Returns whether or not a protocol is enabled on this connection.
+     * 
+     * @return true if protocol is enabled, false otherwise
+     */
+    public boolean hasProtocol() {
+        return protocol != null;
+    }
+
+    /**
+     * Returns the protocol enabled on this connection.
+     * 
+     * @return protocol
+     */
+    public String getProtocol() {
+        return protocol;
+    }
+
+    /**
+     * Sets the protocol.
+     * 
+     * @param protocol
+     */
+    public void setProtocol(String protocol) {
+        this.protocol = protocol;
+    }
+
+    @Override
+    public String toString() {
+        return "WebSocketConnection [id=" + id + ", type=" + type + ", host=" + host + ", origin=" + origin + ", path=" + path + ", secure=" + secure + ", connected=" + connected + ", remote=" + (session != null ? session.getRemoteAddress().toString() : "unk") + "]";
+    }
 
 }

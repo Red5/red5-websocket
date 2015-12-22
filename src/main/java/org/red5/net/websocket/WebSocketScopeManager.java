@@ -18,10 +18,9 @@
 
 package org.red5.net.websocket;
 
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.CopyOnWriteArraySet;
 
 import org.red5.net.websocket.listener.DefaultWebSocketDataListener;
 import org.red5.net.websocket.listener.IWebSocketDataListener;
@@ -38,190 +37,199 @@ import org.slf4j.LoggerFactory;
  */
 public class WebSocketScopeManager {
 
-	private static final Logger log = LoggerFactory.getLogger(WebSocketScopeManager.class);
+    private static final Logger log = LoggerFactory.getLogger(WebSocketScopeManager.class);
 
-	private Set<String> activeApplications = new HashSet<String>();
+    private CopyOnWriteArraySet<String> activeApplications = new CopyOnWriteArraySet<String>();
 
-	private Map<String, WebSocketScope> scopes = new HashMap<String, WebSocketScope>();
+    private ConcurrentMap<String, WebSocketScope> scopes = new ConcurrentHashMap<String, WebSocketScope>();
 
-	/**
-	 * @return true:valid application name
-	 */
-	public boolean isEnabled(String application) {
-		if (application.startsWith("/")) {
-			int roomSlashPos = application.indexOf('/', 1);
-			if (roomSlashPos == -1) {
-				application = application.substring(1);
-			} else {
-				application = application.substring(1, roomSlashPos);
-			}
-		}
-		boolean enabled = activeApplications.contains(application);
-		log.debug("Enabled check on application: {} enabled: {}", application, enabled);
-		return enabled;
-	}
+    /**
+     * @return true:valid application name
+     */
+    public boolean isEnabled(String application) {
+        if (application.startsWith("/")) {
+            int roomSlashPos = application.indexOf('/', 1);
+            if (roomSlashPos == -1) {
+                application = application.substring(1);
+            } else {
+                application = application.substring(1, roomSlashPos);
+            }
+        }
+        boolean enabled = activeApplications.contains(application);
+        log.debug("Enabled check on application: {} enabled: {}", application, enabled);
+        return enabled;
+    }
 
-	/**
-	 * Adds an application level scope to the enabled applications.
-	 * 
-	 * @param scope the application scope
-	 */
-	public void addApplication(IScope scope) {
-		String app = scope.getName();
-		// add the name to the collection (no '/' prefix)
-		activeApplications.add(app);
-		// check the context for a predefined websocket scope
-		IContext ctx = scope.getContext();
-		if (ctx != null && ctx.hasBean("webSocketScopeDefault")) {
-			log.debug("WebSocket scope found in context");
-			WebSocketScope wsScope = (WebSocketScope) scope.getContext().getBean("webSocketScopeDefault");
-			if (wsScope != null) {
-				log.trace("Default WebSocketScope has {} listeners", wsScope.getListeners().size());
-			}
-			// add to scopes
-			scopes.put(String.format("/%s", app), wsScope);
-		} else {
-			// add a default scope and listener if none are defined
-			WebSocketScope wsScope = new WebSocketScope();
-			wsScope.setPath(String.format("/%s", app));
-			wsScope.addListener(new DefaultWebSocketDataListener());
-			// add to scopes
-			scopes.put(wsScope.getPath(), wsScope);
-		}
-	}
+    /**
+     * Adds an application level scope to the enabled applications.
+     * 
+     * @param scope
+     *            the application scope
+     */
+    public void addApplication(IScope scope) {
+        String app = scope.getName();
+        // add the name to the collection (no '/' prefix)
+        activeApplications.add(app);
+        // check the context for a predefined websocket scope
+        IContext ctx = scope.getContext();
+        if (ctx != null && ctx.hasBean("webSocketScopeDefault")) {
+            log.debug("WebSocket scope found in context");
+            WebSocketScope wsScope = (WebSocketScope) scope.getContext().getBean("webSocketScopeDefault");
+            if (wsScope != null) {
+                log.trace("Default WebSocketScope has {} listeners", wsScope.getListeners().size());
+            }
+            // add to scopes
+            scopes.put(String.format("/%s", app), wsScope);
+        } else {
+            // add a default scope and listener if none are defined
+            WebSocketScope wsScope = new WebSocketScope();
+            wsScope.setPath(String.format("/%s", app));
+            wsScope.addListener(new DefaultWebSocketDataListener());
+            // add to scopes
+            scopes.put(wsScope.getPath(), wsScope);
+        }
+    }
 
-	/**
-	 * Removes the application scope.
-	 * 
-	 * @param scope the application scope
-	 */
-	public void removeApplication(IScope scope) {
-		activeApplications.remove(scope.getName());
-	}
+    /**
+     * Removes the application scope.
+     * 
+     * @param scope
+     *            the application scope
+     */
+    public void removeApplication(IScope scope) {
+        activeApplications.remove(scope.getName());
+    }
 
-	/**
-	 * Adds a websocket scope.
-	 * 
-	 * @param webSocketScope
-	 */
-	public void addWebSocketScope(WebSocketScope webSocketScope) {
-		String path = webSocketScope.getPath();
-		if (!scopes.containsKey(path)) {
-			scopes.put(path, webSocketScope);
-		}
-	}
+    /**
+     * Adds a websocket scope.
+     * 
+     * @param webSocketScope
+     */
+    public void addWebSocketScope(WebSocketScope webSocketScope) {
+        String path = webSocketScope.getPath();
+        if (!scopes.containsKey(path)) {
+            scopes.put(path, webSocketScope);
+        }
+    }
 
-	/**
-	 * Removes a websocket scope.
-	 * 
-	 * @param webSocketScope
-	 */
-	public void removeWebSocketScope(WebSocketScope webSocketScope) {
-		scopes.remove(webSocketScope.getPath());
-	}
+    /**
+     * Removes a websocket scope.
+     * 
+     * @param webSocketScope
+     */
+    public void removeWebSocketScope(WebSocketScope webSocketScope) {
+        scopes.remove(webSocketScope.getPath());
+    }
 
-	/**
-	 * Add the connection on scope.
-	 * 
-	 * @param conn WebSocketConnection
-	 */
-	public void addConnection(WebSocketConnection conn) {
-		WebSocketScope scope = getScope(conn);
-		scope.addConnection(conn);
-	}
+    /**
+     * Add the connection on scope.
+     * 
+     * @param conn
+     *            WebSocketConnection
+     */
+    public void addConnection(WebSocketConnection conn) {
+        WebSocketScope scope = getScope(conn);
+        scope.addConnection(conn);
+    }
 
-	/**
-	 * Remove connection from scope.
-	 * 
-	 * @param conn WebSocketConnection
-	 */
-	public void removeConnection(WebSocketConnection conn) {
-		if (conn != null) {
-			WebSocketScope scope = getScope(conn);
-			if (scope != null) {
-				scope.removeConnection(conn);
-				if (!scope.isValid()) {
-					// scope is not valid. delete this.
-					scopes.remove(scope);
-				}
-			}
-		}
-	}
+    /**
+     * Remove connection from scope.
+     * 
+     * @param conn
+     *            WebSocketConnection
+     */
+    public void removeConnection(WebSocketConnection conn) {
+        if (conn != null) {
+            WebSocketScope scope = getScope(conn);
+            if (scope != null) {
+                scope.removeConnection(conn);
+                if (!scope.isValid()) {
+                    // scope is not valid. delete this.
+                    scopes.remove(scope);
+                }
+            }
+        }
+    }
 
-	/**
-	 * Add the listener on scope via its path.
-	 * 
-	 * @param listener IWebSocketDataListener
-	 * @param path
-	 */
-	public void addListener(IWebSocketDataListener listener, String path) {
-		log.trace("addListener: {}", listener);
-		WebSocketScope scope = getScope(path);
-		if (scope != null) {
-			scope.addListener(listener);
-		} else {
-			log.info("Scope not found for path: {}", path);
-		}
-	}
+    /**
+     * Add the listener on scope via its path.
+     * 
+     * @param listener
+     *            IWebSocketDataListener
+     * @param path
+     */
+    public void addListener(IWebSocketDataListener listener, String path) {
+        log.trace("addListener: {}", listener);
+        WebSocketScope scope = getScope(path);
+        if (scope != null) {
+            scope.addListener(listener);
+        } else {
+            log.info("Scope not found for path: {}", path);
+        }
+    }
 
-	/**
-	 * Remove listener from scope via its path.
-	 * 
-	 * @param listener IWebSocketDataListener
-	 * @param path
-	 */
-	public void removeListener(IWebSocketDataListener listener, String path) {
-		log.trace("removeListener: {}", listener);
-		WebSocketScope scope = getScope(path);
-		if (scope != null) {
-			scope.removeListener(listener);
-			if (!scope.isValid()) {
-				// scope is not valid. delete this
-				scopes.remove(scope);
-			}
-		} else {
-			log.info("Scope not found for path: {}", path);
-		}
-	}
+    /**
+     * Remove listener from scope via its path.
+     * 
+     * @param listener
+     *            IWebSocketDataListener
+     * @param path
+     */
+    public void removeListener(IWebSocketDataListener listener, String path) {
+        log.trace("removeListener: {}", listener);
+        WebSocketScope scope = getScope(path);
+        if (scope != null) {
+            scope.removeListener(listener);
+            if (!scope.isValid()) {
+                // scope is not valid. delete this
+                scopes.remove(scope);
+            }
+        } else {
+            log.info("Scope not found for path: {}", path);
+        }
+    }
 
-	/**
-	 * Get the corresponding scope.
-	 * 
-	 * @param path scope path
-	 * @return scope
-	 */
-	public WebSocketScope getScope(String path) {
-		log.debug("getScope: {}", path);
-		WebSocketScope scope = scopes.get(path);
-		log.debug("Returning: {}", scope);
-		return scope;
-	}
+    /**
+     * Get the corresponding scope.
+     * 
+     * @param path
+     *            scope path
+     * @return scope
+     */
+    public WebSocketScope getScope(String path) {
+        log.debug("getScope: {}", path);
+        WebSocketScope scope = scopes.get(path);
+        log.debug("Returning: {}", scope);
+        return scope;
+    }
 
-	/**
-	 * Get the corresponding scope, if none exists, make new one.
-	 * 
-	 * @param conn 
-	 * @return scope
-	 */
-	private WebSocketScope getScope(WebSocketConnection conn) {
-		log.trace("Scopes: {}", scopes);
-		log.debug("getScope: {}", conn);
-		WebSocketScope scope;
-		String path = conn.getPath();
-		if (!scopes.containsKey(path)) {
-			// check for default scope
-			if (!scopes.containsKey("default")) {
-				scope = new WebSocketScope();
-				scope.setPath(path);
-				scopes.put(path, scope);
-				log.debug("Be aware that scopes added by connection don't contain listeners by default");
-			} else {
-				path = "default";
-			}
-		}
-		scope = scopes.get(path);
-		log.debug("Returning: {}", scope);
-		return scope;
-	}
+    /**
+     * Get the corresponding scope, if none exists, make new one.
+     * 
+     * @param conn
+     * @return scope
+     */
+    private WebSocketScope getScope(WebSocketConnection conn) {
+        if (log.isTraceEnabled()) {
+            log.trace("Scopes: {}", scopes);
+        }
+        log.debug("getScope: {}", conn);
+        WebSocketScope scope;
+        String path = conn.getPath();
+        if (!scopes.containsKey(path)) {
+            // check for default scope
+            if (!scopes.containsKey("default")) {
+                scope = new WebSocketScope();
+                scope.setPath(path);
+                scopes.put(path, scope);
+                log.debug("Be aware that scopes added by connection don't contain listeners by default");
+            } else {
+                path = "default";
+            }
+        }
+        scope = scopes.get(path);
+        log.debug("Returning: {}", scope);
+        return scope;
+    }
 
 }

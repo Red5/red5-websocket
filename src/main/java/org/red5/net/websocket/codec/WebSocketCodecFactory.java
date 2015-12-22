@@ -27,24 +27,24 @@ import org.apache.mina.filter.codec.ProtocolEncoder;
  * Codec Factory used for creating websocket filter.
  */
 public class WebSocketCodecFactory implements ProtocolCodecFactory {
-	
-	private final ProtocolEncoder encoder;
 
-	private final ProtocolDecoder decoder;
+    private final ProtocolEncoder encoder;
 
-	public WebSocketCodecFactory() {
-		encoder = new WebSocketEncoder();
-		decoder = new WebSocketDecoder();
-	}
+    private final ProtocolDecoder decoder;
 
-	@Override
-	public ProtocolDecoder getDecoder(IoSession session) throws Exception {
-		return decoder;
-	}
+    public WebSocketCodecFactory() {
+        encoder = new WebSocketEncoder();
+        decoder = new WebSocketDecoder();
+    }
 
-	@Override
-	public ProtocolEncoder getEncoder(IoSession session) throws Exception {
-		return encoder;
-	}
+    @Override
+    public ProtocolDecoder getDecoder(IoSession session) throws Exception {
+        return decoder;
+    }
+
+    @Override
+    public ProtocolEncoder getEncoder(IoSession session) throws Exception {
+        return encoder;
+    }
 
 }

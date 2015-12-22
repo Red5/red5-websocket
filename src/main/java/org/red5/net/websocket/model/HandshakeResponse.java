@@ -28,15 +28,15 @@ import org.apache.mina.core.buffer.IoBuffer;
  */
 public class HandshakeResponse {
 
-	private final IoBuffer response;
+    private final IoBuffer response;
 
-	public HandshakeResponse(IoBuffer response) {
-		this.response = response;
-		response.flip();
-	}
+    public HandshakeResponse(IoBuffer response) {
+        this.response = response;
+        response.flip();
+    }
 
-	public IoBuffer getResponse() {
-		return response;
-	}
+    public IoBuffer getResponse() {
+        return response;
+    }
 
 }

@@ -18,7 +18,6 @@
 
 package org.red5.net.websocket.listener;
 
-
 /**
  * Adapter class for WebSocket data listener interface.
  * 
@@ -26,21 +25,21 @@ package org.red5.net.websocket.listener;
  */
 public abstract class WebSocketDataListener implements IWebSocketDataListener {
 
-	/**
-	 * The protocol which this listener is interested in handling.
-	 */
-	protected String protocol;
+    /**
+     * The protocol which this listener is interested in handling.
+     */
+    protected String protocol;
 
-	/** {@inheritDoc} */
-	@Override
-	public String getProtocol() {
-		return protocol;
-	}
+    /** {@inheritDoc} */
+    @Override
+    public String getProtocol() {
+        return protocol;
+    }
 
-	/** {@inheritDoc} */
-	@Override
-	public void setProtocol(String protocol) {
-		this.protocol = protocol;
-	}
-	
+    /** {@inheritDoc} */
+    @Override
+    public void setProtocol(String protocol) {
+        this.protocol = protocol;
+    }
+
 }

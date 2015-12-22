@@ -27,27 +27,27 @@ import org.apache.mina.core.buffer.IoBuffer;
  * @author Paul Gregoire
  */
 public class Packet {
-	
+
     private final IoBuffer data;
-    
+
     private final MessageType type;
-    
+
     private Packet(byte[] buf) {
-    	this.data = IoBuffer.wrap(buf);
-    	this.type = MessageType.BINARY;
+        this.data = IoBuffer.wrap(buf);
+        this.type = MessageType.BINARY;
     }
 
     private Packet(byte[] buf, MessageType type) {
-    	this.data = IoBuffer.wrap(buf);
-    	this.type = type;
+        this.data = IoBuffer.wrap(buf);
+        this.type = type;
     }
-    
+
     /**
      * Returns the data.
      * 
-     * @return data 
+     * @return data
      */
-    public IoBuffer getData(){
+    public IoBuffer getData() {
         return data;
     }
 
@@ -57,10 +57,10 @@ public class Packet {
      * @return type
      */
     public MessageType getType() {
-		return type;
-	}
+        return type;
+    }
 
-	/**
+    /**
      * Builds the packet which just wraps the IoBuffer.
      * 
      * @param buf
@@ -80,8 +80,8 @@ public class Packet {
         return new Packet(buffer.array());
     }
 
-	public static Packet build(byte[] bytes, MessageType type) {
-		return new Packet(bytes, type);
-	}
-        
+    public static Packet build(byte[] bytes, MessageType type) {
+        return new Packet(bytes, type);
+    }
+
 }
