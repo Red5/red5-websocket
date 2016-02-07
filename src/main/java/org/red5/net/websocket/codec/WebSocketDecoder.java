@@ -222,25 +222,52 @@ public class WebSocketDecoder extends CumulativeProtocolDecoder {
         }
         Map<String, Object> map = new HashMap<String, Object>();
         for (int i = 0; i < request.length; i++) {
-            if (request[i].startsWith("GET ")) {
+            log.trace("Request {}: {}", i, request[i]);
+            if (request[i].startsWith("GET ") || request[i].startsWith("POST ") || request[i].startsWith("PUT ")) {
+                // "GET /chat/room1?id=publisher1 HTTP/1.1"
+                // split it on space
+                String requestPath = request[i].split("\\s+")[1];
                 // get the path data for handShake
-                int start = request[i].indexOf('/');
-                int end = request[i].indexOf(' ', start);
-                // check for '?' or included query string
-                if (request[i].indexOf('?', start) > 0) {
-                    end = request[i].indexOf('?', start);
-                    // parse any included query string
-                    String qs = request[i].substring(end, request[i].indexOf(' ', start)).trim();
-                    map.put(Constants.URI_QS_PARAMETERS, parseQuerystring(qs));
+                int start = requestPath.indexOf('/');
+                int end = requestPath.length();
+                int ques = requestPath.indexOf('?');
+                if (ques > 0) {
+                    end = ques;
                 }
-                String path = request[i].substring(start, end).trim();
+                log.trace("Request path: {} to {} ques: {}", start, end, ques);
+                String path = requestPath.substring(start, end).trim();
                 log.trace("Client request path: {}", path);
                 conn.setPath(path);
+                // check for '?' or included query string
+                if (ques > 0) {
+                    // parse any included query string
+                    String qs = requestPath.substring(ques).trim();
+                    log.trace("Request querystring: {}", qs);
+                    map.put(Constants.URI_QS_PARAMETERS, parseQuerystring(qs));
+                }
                 // get the manager
-                WebSocketScopeManager manager = ((WebSocketPlugin) PluginRegistry.getPlugin("WebSocketPlugin")).getManager();
-                // only check that the application is enabled, not the room or sub levels
-                if (!manager.isEnabled(path)) {
-                    // invalid scope or its application is not enabled, send disconnect message
+                WebSocketPlugin plugin = (WebSocketPlugin) PluginRegistry.getPlugin("WebSocketPlugin");
+                if (plugin != null) {
+                    log.trace("Found plugin");
+                    WebSocketScopeManager manager = plugin.getManager();
+                    // only check that the application is enabled, not the room or sub levels
+                    if (manager != null && manager.isEnabled(path)) {
+                        log.trace("Path enabled: {}", path);
+                    } else {
+                        // invalid scope or its application is not enabled, send disconnect message
+                        HandshakeResponse errResponse = build400Response(conn);
+                        WriteFuture future = conn.getSession().write(errResponse);
+                        future.addListener(new IoFutureListener<IoFuture>() {
+                            @Override
+                            public void operationComplete(IoFuture future) {
+                                // close connection
+                                future.getSession().close(false);
+                            }
+                        });
+                        throw new WebSocketException("Handshake failed, path not enabled");
+                    }
+                } else {
+                    log.trace("Plugin lookup failed");
                     HandshakeResponse errResponse = build400Response(conn);
                     WriteFuture future = conn.getSession().write(errResponse);
                     future.addListener(new IoFutureListener<IoFuture>() {
@@ -250,7 +277,7 @@ public class WebSocketDecoder extends CumulativeProtocolDecoder {
                             future.getSession().close(false);
                         }
                     });
-                    throw new WebSocketException("Handshake failed");
+                    throw new WebSocketException("Handshake failed, missing plugin");
                 }
             } else if (request[i].contains(Constants.WS_HEADER_KEY)) {
                 map.put(Constants.WS_HEADER_KEY, extractHeaderValue(request[i]));

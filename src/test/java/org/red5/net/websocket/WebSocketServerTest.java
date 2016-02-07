@@ -24,6 +24,7 @@ import static org.junit.Assert.assertTrue;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -34,6 +35,12 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+
+import javax.websocket.ClientEndpoint;
+import javax.websocket.ContainerProvider;
+import javax.websocket.OnMessage;
+import javax.websocket.Session;
+import javax.websocket.WebSocketContainer;
 
 import org.apache.mina.core.buffer.IoBuffer;
 import org.apache.mina.core.filterchain.IoFilter.NextFilter;
@@ -58,6 +65,7 @@ import org.apache.mina.transport.socket.SocketConnector;
 import org.apache.mina.transport.socket.SocketSessionConfig;
 import org.apache.mina.transport.socket.nio.NioSocketAcceptor;
 import org.apache.mina.transport.socket.nio.NioSocketConnector;
+import org.glassfish.tyrus.client.ClientManager;
 import org.junit.Test;
 import org.red5.net.websocket.codec.WebSocketCodecFactory;
 import org.red5.net.websocket.codec.WebSocketDecoder;
@@ -69,6 +77,7 @@ import org.red5.net.websocket.model.Packet;
 import org.red5.net.websocket.model.WSMessage;
 import org.red5.server.plugin.PluginRegistry;
 import org.red5.server.scope.GlobalScope;
+import org.red5.server.scope.WebScope;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -318,6 +327,48 @@ public class WebSocketServerTest {
         log.info("testUnmaskedPingRoundTrip exit");
     }
 
+    @Test
+    public void testUriWithParams() throws Throwable {
+        log.info("\ntestUriWithParams enter");
+        // create the server instance
+        Thread server = new Thread() {
+            @Override
+            public void run() {
+                log.debug("Server thread run");
+                try {
+                    WSServer.main(null);
+                } catch (IOException e) {
+                    log.error("Error in server thread", e);
+                }
+                log.debug("Server thread exit");
+            }
+        };
+        server.setDaemon(true);
+        server.start();
+        // add plugin to the registry
+        WebSocketPlugin plugin = new WebSocketPlugin();
+        PluginRegistry.register(plugin);
+        WebSocketScopeManager manager = plugin.getManager();
+        manager.addApplication(new GlobalScope());
+        // start plugin
+        plugin.doStart();
+        // wait for server
+        while (!WSServer.isListening()) {
+            Thread.sleep(10L);
+        }
+        // create the client
+        TyrusWSClient client = new TyrusWSClient();
+        client.start();
+        client.sendMessage("This is a test");
+        //client.terminate();
+        // stop server
+        server.interrupt();
+        WSServer.stop();
+        // stop plugin
+        PluginRegistry.shutdown();
+        log.info("testUriWithParams exit");
+    }
+
     private class Worker implements Callable<Object> {
 
         boolean failed;
@@ -330,7 +381,7 @@ public class WebSocketServerTest {
             } else {
                 failed = true;
             }
-            return null;
+            return failed;
         }
 
     }
@@ -365,13 +416,13 @@ public class WebSocketServerTest {
             //socketAddresses.add(new InetSocketAddress("localhost", 8888));
             log.debug("Binding to {}", socketAddresses.toString());
             acceptor.bind(socketAddresses);
-            System.out.println("WS server is listening");
+            System.out.println("WS server started listening");
             listening = true;
             while (true) {
                 try {
                     Thread.sleep(2000L);
                 } catch (InterruptedException e) {
-                    System.out.println("WS server is not listening");
+                    System.out.println("WS server stopped listening");
                 }
             }
         }
@@ -462,6 +513,66 @@ public class WebSocketServerTest {
             return session != null;
         }
 
+    }
+
+    @ClientEndpoint
+    public class TyrusWSClient {
+
+        private WebSocketContainer container = null;
+
+        private Session session = null;
+
+        private Object waitLock = new Object();
+
+        @OnMessage
+        public void onMessage(String message) {
+            System.out.println("Received msg: " + message);
+        }
+
+        public void sendMessage(String message) {
+            try {
+                session.getBasicRemote().sendText(message);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+
+        private void wait4TerminateSignal() {
+            synchronized (waitLock) {
+                try {
+                    waitLock.wait();
+                } catch (InterruptedException e) {
+                }
+            }
+        }
+
+        public void terminate() {
+            synchronized (waitLock) {
+                waitLock.notifyAll();
+            }
+        }
+
+        public void start() {
+            //ClientManager mgr = ClientManager.createClient(); //org.glassfish.tyrus.client.ClientManager
+            //mgr.connectToServer(TyrusWSClient.class, "ws://localhost:8888/app?id=cafebeef0123");
+            try {
+                // Tyrus is plugged via ServiceLoader API. See notes above
+                container = ContainerProvider.getWebSocketContainer();
+                //ratesrv is the  path given in the ServerEndPoint annotation on server implementation
+                session = container.connectToServer(TyrusWSClient.class, URI.create("ws://localhost:8888/default?id=cafebeef0123"));
+                //wait4TerminateSignal();
+            } catch (Exception e) {
+                e.printStackTrace();
+            } finally {
+                if (session != null) {
+                    try {
+                        session.close();
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+        }
     }
 
     private class DummyDecoder extends WebSocketDecoder {

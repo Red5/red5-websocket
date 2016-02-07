@@ -40,7 +40,7 @@ public class WebSocketPlugin extends Red5Plugin {
 
     private Logger log = LoggerFactory.getLogger(WebSocketPlugin.class);
 
-    private WebSocketScopeManager manager = new WebSocketScopeManager();
+    private WebSocketScopeManager manager;
 
     public WebSocketPlugin() {
         log.trace("WebSocketPlugin ctor");
@@ -53,6 +53,7 @@ public class WebSocketPlugin extends Red5Plugin {
     public void doStart() throws Exception {
         super.doStart();
         log.trace("WebSocketPlugin start");
+        manager = new WebSocketScopeManager();
     }
 
     /**

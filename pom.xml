@@ -6,7 +6,7 @@
     <artifactId>websocket</artifactId>
     <packaging>jar</packaging>
     <name>websocket</name>
-    <version>1.3</version>
+    <version>1.4</version>
     <description>Red5 WebSocket plugin</description>
     <url>https://github.com/Red5/red5-websocket</url>
     <organization>
@@ -45,8 +45,8 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <red5.version>1.0.7-SNAPSHOT</red5.version>
-        <spring.version>4.2.3.RELEASE</spring.version>
-        <mina.version>(2.0.8,2.0.10)</mina.version>
+        <spring.version>4.2.4.RELEASE</spring.version>
+        <mina.version>[2.0.9,2.0.12)</mina.version>
         <slf4j.version>1.7.9</slf4j.version>
         <logback.version>1.1.2</logback.version>
         <quartz.version>2.2.2</quartz.version>
@@ -55,72 +55,10 @@
     </properties>
     <build>
         <defaultGoal>install</defaultGoal>
-        <directory>${basedir}/target</directory>
         <plugins>
             <plugin>
-                <artifactId>maven-compiler-plugin</artifactId>
-                <version>2.3.2</version>
-                <configuration>
-                    <compilerVersion>1.6</compilerVersion>
-                    <fork>true</fork>
-                    <source>1.6</source>
-                    <target>1.6</target>
-                    <executable>${maven.compiler.executable}</executable>
-                    <compilerArgument>-Xlint:unchecked</compilerArgument>
-                </configuration>
-            </plugin>
-            <plugin>
-                <artifactId>maven-source-plugin</artifactId>
-                <version>2.4</version>
-                <executions>
-                    <execution>
-                        <id>attach-sources</id>
-                        <goals>
-                            <goal>jar-no-fork</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
-                <artifactId>maven-javadoc-plugin</artifactId>
-                <version>2.10.1</version>
-                <executions>
-                    <execution>
-                        <id>attach-javadocs</id>
-                        <goals>
-                            <goal>jar</goal>
-                        </goals>
-                    </execution>
-                </executions>
-                <configuration>
-                    <verbose>true</verbose>
-                    <failOnError>false</failOnError>
-                    <sourcepath>${basedir}/src/main/java</sourcepath>
-                    <includeDependencySources>false</includeDependencySources>
-                    <dependencySourceIncludes>
-                        <dependencySourceInclude>org.red5:*</dependencySourceInclude>
-                    </dependencySourceIncludes>
-                    <detectOfflineLinks>false</detectOfflineLinks>
-                    <stylesheetfile>javadoc.css</stylesheetfile>
-                    <links>
-                        <link>http://download.oracle.com/javase/6/docs/api</link>
-                        <link>http://docs.spring.io/spring/docs/4.0.x/javadoc-api</link>
-                        <link>http://www.slf4j.org/api</link>
-                        <link>http://logging.apache.org/log4j/1.2/apidocs</link>
-                    </links>
-                    <tags>
-                        <tag>
-                            <name>todo</name>
-                            <!-- todo tag for all places -->
-                            <placement>a</placement>
-                            <head>To do:</head>
-                        </tag>
-                    </tags>
-                </configuration>
-            </plugin>
-            <plugin>
                 <artifactId>maven-jar-plugin</artifactId>
-                <version>2.4</version>
+                <version>2.6</version>
                 <configuration>
                     <archive>
                         <manifest>
@@ -153,56 +91,13 @@
                 </executions>
             </plugin>
             <plugin>
-                <artifactId>maven-project-info-reports-plugin</artifactId>
-                <version>2.4</version>
-            </plugin>
-            <plugin>
                 <groupId>org.apache.felix</groupId>
                 <artifactId>maven-bundle-plugin</artifactId>
                 <version>2.3.7</version>
                 <extensions>true</extensions>
             </plugin>
         </plugins>
-        <resources>
-            <resource>
-                <directory>src/main/java</directory>
-                <includes>
-                    <include>**/*.xml</include>
-                </includes>
-            </resource>
-            <resource>
-                <directory>src/main/resources</directory>
-            </resource>
-        </resources>
-        <testResources>
-            <testResource>
-                <directory>src/test/java</directory>
-            </testResource>
-            <testResource>
-                <directory>src/test/resources</directory>
-            </testResource>
-        </testResources>
     </build>
-    <reporting>
-        <outputDirectory>${basedir}/target/site</outputDirectory>
-        <plugins>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-project-info-reports-plugin</artifactId>
-                <version>2.4</version>
-                <reportSets>
-                    <reportSet>
-                        <reports>
-                            <report>index</report>
-                            <report>dependencies</report>
-                            <report>summary</report>
-                            <report>javadoc</report>
-                        </reports>
-                    </reportSet>
-                </reportSets>
-            </plugin>
-        </plugins>
-    </reporting>
     <dependencyManagement>
         <dependencies>
             <dependency>
@@ -371,6 +266,12 @@
         <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.glassfish.tyrus.bundles</groupId>
+            <artifactId>tyrus-standalone-client-jdk</artifactId>
+            <version>1.12</version>
+            <scope>test</scope>
         </dependency>
     </dependencies>
     <profiles>

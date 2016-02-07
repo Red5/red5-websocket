@@ -80,7 +80,6 @@ public class WebSocketTransport implements InitializingBean, DisposableBean {
     @Override
     public void afterPropertiesSet() throws Exception {
         // create the nio acceptor
-        //acceptor = new NioSocketAcceptor(Executors.newFixedThreadPool(connectionThreads), new NioProcessor(Executors.newFixedThreadPool(ioThreads)));
         acceptor = new NioSocketAcceptor(ioThreads);
         // instance the websocket handler
         if (ioHandler == null) {

@@ -20,31 +20,52 @@ package org.red5.net.websocket;
 
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.Set;
+import java.util.concurrent.CopyOnWriteArraySet;
 
 import org.red5.net.websocket.listener.IWebSocketDataListener;
 import org.red5.net.websocket.model.WSMessage;
+import org.red5.server.api.scope.IScope;
 import org.red5.server.plugin.PluginRegistry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.DisposableBean;
+import org.springframework.beans.factory.InitializingBean;
 
-public class WebSocketScope {
+public class WebSocketScope implements InitializingBean, DisposableBean {
 
-    private static final Logger log = LoggerFactory.getLogger(WebSocketScope.class);
+    private Logger log = LoggerFactory.getLogger(WebSocketScope.class);
 
-    private String path;
+    private CopyOnWriteArraySet<WebSocketConnection> conns = new CopyOnWriteArraySet<WebSocketConnection>();
 
-    private Set<WebSocketConnection> conns = new HashSet<WebSocketConnection>();
+    private CopyOnWriteArraySet<IWebSocketDataListener> listeners = new CopyOnWriteArraySet<IWebSocketDataListener>();
 
-    private Set<IWebSocketDataListener> listeners = new HashSet<IWebSocketDataListener>();
+    private IScope scope;
+
+    private String path = "default";
+
+    @Override
+    public void afterPropertiesSet() throws Exception {
+        register();
+    }
+
+    @Override
+    public void destroy() throws Exception {
+        unregister();
+    }
 
     /**
      * Registers with the WebSocketScopeManager.
      */
     public void register() {
+        log.info("Application scope: {}", scope);
+        // set the logger to the app scope
+        //log = Red5LoggerFactory.getLogger(WebSocketScope.class, scope.getName());
         WebSocketScopeManager manager = ((WebSocketPlugin) PluginRegistry.getPlugin("WebSocketPlugin")).getManager();
         manager.addWebSocketScope(this);
+        log.info("WebSocket scope added");
+        manager.addApplication(scope);
+        log.info("WebSocket app added: {}", scope.getName());
     }
 
     /**
@@ -53,6 +74,9 @@ public class WebSocketScope {
     public void unregister() {
         WebSocketScopeManager manager = ((WebSocketPlugin) PluginRegistry.getPlugin("WebSocketPlugin")).getManager();
         manager.removeWebSocketScope(this);
+        log.info("WebSocket scope removed");
+        manager.removeApplication(scope);
+        log.info("WebSocket app removed: {}", scope.getName());
     }
 
     /**
@@ -62,6 +86,24 @@ public class WebSocketScope {
      */
     public Set<WebSocketConnection> getConns() {
         return conns;
+    }
+
+    /**
+     * Returns the associated scope.
+     * 
+     * @return scope
+     */
+    public IScope getScope() {
+        return scope;
+    }
+
+    /**
+     * Sets the associated scope.
+     * 
+     * @param scope
+     */
+    public void setScope(IScope scope) {
+        this.scope = scope;
     }
 
     /**

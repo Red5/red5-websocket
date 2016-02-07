@@ -109,6 +109,7 @@ public class WebSocketScopeManager {
         String path = webSocketScope.getPath();
         if (!scopes.containsKey(path)) {
             scopes.put(path, webSocketScope);
+            log.info("addWebSocketScope: {}", webSocketScope);
         }
     }
 
@@ -118,6 +119,7 @@ public class WebSocketScopeManager {
      * @param webSocketScope
      */
     public void removeWebSocketScope(WebSocketScope webSocketScope) {
+        log.info("removeWebSocketScope: {}", webSocketScope);
         scopes.remove(webSocketScope.getPath());
     }
 

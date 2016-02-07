@@ -71,8 +71,17 @@ public class WebSocketHandler extends IoHandlerAdapter {
         // remove connection from scope
         WebSocketConnection conn = (WebSocketConnection) session.getAttribute("connection");
         // remove from the manager
-        WebSocketScopeManager manager = ((WebSocketPlugin) PluginRegistry.getPlugin("WebSocketPlugin")).getManager();
-        manager.removeConnection(conn);
+        WebSocketPlugin plugin = (WebSocketPlugin) PluginRegistry.getPlugin("WebSocketPlugin");
+        if (plugin != null) {
+            WebSocketScopeManager manager = plugin.getManager();
+            if (manager != null) {
+                manager.removeConnection(conn);
+            } else {
+                log.debug("WebSocket manager was not found");
+            }
+        } else {
+            log.debug("WebSocket plugin was not found");
+        }
         super.sessionClosed(session);
     }
 
