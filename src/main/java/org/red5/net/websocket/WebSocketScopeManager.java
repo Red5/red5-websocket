@@ -201,6 +201,10 @@ public class WebSocketScopeManager {
     public WebSocketScope getScope(String path) {
         log.debug("getScope: {}", path);
         WebSocketScope scope = scopes.get(path);
+        // if we dont find a scope, go for default
+        if (scope == null) {
+            scope = scopes.get("default");
+        }
         log.debug("Returning: {}", scope);
         return scope;
     }

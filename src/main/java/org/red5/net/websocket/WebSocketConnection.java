@@ -101,7 +101,9 @@ public class WebSocketConnection {
     public void receive(WSMessage message) {
         log.trace("receive message");
         if (isConnected()) {
-            WebSocketScopeManager manager = ((WebSocketPlugin) PluginRegistry.getPlugin("WebSocketPlugin")).getManager();
+            WebSocketPlugin plugin = (WebSocketPlugin) PluginRegistry.getPlugin("WebSocketPlugin");
+            WebSocketScopeManager manager = plugin.getManager();
+            
             WebSocketScope scope = manager.getScope(getPath());
             scope.onMessage(message);
         } else {
