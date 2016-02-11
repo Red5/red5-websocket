@@ -141,10 +141,11 @@ public class WebSocketServerTest {
         // add plugin to the registry
         WebSocketPlugin plugin = new WebSocketPlugin();
         PluginRegistry.register(plugin);
-        WebSocketScopeManager manager = plugin.getManager();
-        manager.addApplication(new GlobalScope());
         // start plugin
         plugin.doStart();
+        // get the manager
+        WebSocketScopeManager manager = plugin.getManager();
+        manager.addApplication(new GlobalScope());
         // wait for server
         while (!WSServer.isListening()) {
             Thread.sleep(10L);
@@ -348,19 +349,26 @@ public class WebSocketServerTest {
         // add plugin to the registry
         WebSocketPlugin plugin = new WebSocketPlugin();
         PluginRegistry.register(plugin);
-        WebSocketScopeManager manager = plugin.getManager();
-        manager.addApplication(new GlobalScope());
         // start plugin
         plugin.doStart();
+        // get the manager
+        WebSocketScopeManager manager = plugin.getManager();
+        manager.addApplication(new GlobalScope());
         // wait for server
         while (!WSServer.isListening()) {
             Thread.sleep(10L);
         }
         // create the client
-        TyrusWSClient client = new TyrusWSClient();
-        client.start();
-        client.sendMessage("This is a test");
-        //client.terminate();
+        final TyrusWSClient client = new TyrusWSClient();
+        new Thread(new Runnable() {
+            public void run() {
+                client.start();
+            }
+        }).start();;
+        // send a message
+        //client.sendMessage("This is a test");
+        // terminate client
+        client.terminate();
         // stop server
         server.interrupt();
         WSServer.stop();
@@ -560,7 +568,7 @@ public class WebSocketServerTest {
                 container = ContainerProvider.getWebSocketContainer();
                 //ratesrv is the  path given in the ServerEndPoint annotation on server implementation
                 session = container.connectToServer(TyrusWSClient.class, URI.create("ws://localhost:8888/default?id=cafebeef0123"));
-                //wait4TerminateSignal();
+                wait4TerminateSignal();
             } catch (Exception e) {
                 e.printStackTrace();
             } finally {
