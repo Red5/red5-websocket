@@ -65,7 +65,6 @@ import org.apache.mina.transport.socket.SocketConnector;
 import org.apache.mina.transport.socket.SocketSessionConfig;
 import org.apache.mina.transport.socket.nio.NioSocketAcceptor;
 import org.apache.mina.transport.socket.nio.NioSocketConnector;
-import org.glassfish.tyrus.client.ClientManager;
 import org.junit.Test;
 import org.red5.net.websocket.codec.WebSocketCodecFactory;
 import org.red5.net.websocket.codec.WebSocketDecoder;
@@ -77,7 +76,6 @@ import org.red5.net.websocket.model.Packet;
 import org.red5.net.websocket.model.WSMessage;
 import org.red5.server.plugin.PluginRegistry;
 import org.red5.server.scope.GlobalScope;
-import org.red5.server.scope.WebScope;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -619,6 +617,24 @@ public class WebSocketServerTest {
     }
 
     private class DummySession implements IoSession {
+
+        @Override
+        public CloseFuture closeNow() {
+            // TODO Auto-generated method stub
+            return null;
+        }
+
+        @Override
+        public CloseFuture closeOnFlush() {
+            // TODO Auto-generated method stub
+            return null;
+        }
+
+        @Override
+        public boolean isActive() {
+            // TODO Auto-generated method stub
+            return false;
+        }
 
         Map<Object, Object> attr = new HashMap<Object, Object>();
 
