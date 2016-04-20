@@ -175,7 +175,7 @@ public class WebSocketScope implements InitializingBean, DisposableBean {
     /**
      * Add new listeners on scope.
      * 
-     * @param listenerList
+     * @param listeners
      *            list of IWebSocketDataListener
      */
     public void setListeners(Collection<IWebSocketDataListener> listeners) {

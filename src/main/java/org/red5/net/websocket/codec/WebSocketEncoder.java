@@ -76,7 +76,9 @@ public class WebSocketEncoder extends ProtocolEncoderAdapter {
         byte frameInfo = (byte) (1 << 7);
         switch (packet.getType()) {
             case TEXT:
-                log.trace("Encoding text frame");
+                if (log.isTraceEnabled()) {
+                    log.trace("Encoding text frame  \r\n{}", new String(packet.getData().array()));
+                }
                 frameInfo = (byte) (frameInfo | 1);
                 break;
             case BINARY:
@@ -90,9 +92,11 @@ public class WebSocketEncoder extends ProtocolEncoderAdapter {
                 frameInfo = (byte) (frameInfo | 0);
                 break;
             case PING:
+                log.trace("ping out");
                 frameInfo = (byte) (frameInfo | 9);
                 break;
             case PONG:
+                log.trace("pong out");
                 frameInfo = (byte) (frameInfo | 0xa);
                 break;
             default:
@@ -100,6 +104,7 @@ public class WebSocketEncoder extends ProtocolEncoderAdapter {
         }
         buffer.put(frameInfo);
         // set the frame length
+        log.trace("Frame length {} ", frameLen);
         if (frameLen <= 125) {
             buffer.put((byte) ((byte) frameLen & (byte) 0x7F));
         } else if (frameLen > 125 && frameLen <= 65535) {

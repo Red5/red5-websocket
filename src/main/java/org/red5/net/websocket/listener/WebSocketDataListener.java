@@ -28,7 +28,7 @@ public abstract class WebSocketDataListener implements IWebSocketDataListener {
     /**
      * The protocol which this listener is interested in handling.
      */
-    protected String protocol;
+    protected String protocol = "undefined";
 
     /** {@inheritDoc} */
     @Override

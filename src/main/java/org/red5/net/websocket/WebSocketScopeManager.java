@@ -24,6 +24,7 @@ import java.util.concurrent.CopyOnWriteArraySet;
 
 import org.red5.net.websocket.listener.DefaultWebSocketDataListener;
 import org.red5.net.websocket.listener.IWebSocketDataListener;
+import org.red5.net.websocket.listener.IWebSocketScopeListener;
 import org.red5.server.api.IContext;
 import org.red5.server.api.scope.IScope;
 import org.slf4j.Logger;
@@ -39,9 +40,19 @@ public class WebSocketScopeManager {
 
     private static final Logger log = LoggerFactory.getLogger(WebSocketScopeManager.class);
 
-    private CopyOnWriteArraySet<String> activeApplications = new CopyOnWriteArraySet<String>();
+    private CopyOnWriteArraySet<String> activeApplications = new CopyOnWriteArraySet<>();
 
-    private ConcurrentMap<String, WebSocketScope> scopes = new ConcurrentHashMap<String, WebSocketScope>();
+    private static CopyOnWriteArraySet<IWebSocketScopeListener> scopeListners = new CopyOnWriteArraySet<>();
+
+    private ConcurrentMap<String, WebSocketScope> scopes = new ConcurrentHashMap<>();
+
+    public static void addListener(IWebSocketScopeListener listner) {
+        scopeListners.add(listner);
+    }
+
+    public static void removeListener(IWebSocketScopeListener listner) {
+        scopeListners.remove(listner);
+    }
 
     /**
      * @return true:valid application name
@@ -81,12 +92,23 @@ public class WebSocketScopeManager {
             // add to scopes
             scopes.put(String.format("/%s", app), wsScope);
         } else {
+            log.debug("Creating a new scope");
             // add a default scope and listener if none are defined
             WebSocketScope wsScope = new WebSocketScope();
             wsScope.setPath(String.format("/%s", app));
-            wsScope.addListener(new DefaultWebSocketDataListener());
             // add to scopes
             scopes.put(wsScope.getPath(), wsScope);
+            notifyListeners(wsScope);
+            if (wsScope.getListeners().isEmpty()) {
+                log.debug("adding default listener");
+                wsScope.addListener(new DefaultWebSocketDataListener());
+            }
+        }
+    }
+
+    private static void notifyListeners(WebSocketScope wsScope) {
+        for (IWebSocketScopeListener l : scopeListners) {
+            l.scopeCreated(wsScope);
         }
     }
 

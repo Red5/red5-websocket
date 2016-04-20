@@ -103,7 +103,7 @@ public class WebSocketConnection {
         if (isConnected()) {
             WebSocketPlugin plugin = (WebSocketPlugin) PluginRegistry.getPlugin("WebSocketPlugin");
             WebSocketScopeManager manager = plugin.getManager();
-            
+
             WebSocketScope scope = manager.getScope(getPath());
             scope.onMessage(message);
         } else {
@@ -150,7 +150,7 @@ public class WebSocketConnection {
      * close Connection
      */
     public void close() {
-        CloseFuture future = session.close(true);
+        CloseFuture future = session.closeNow();
         future.addListener(new IoFutureListener<CloseFuture>() {
             public void operationComplete(CloseFuture future) {
                 if (future.isClosed()) {

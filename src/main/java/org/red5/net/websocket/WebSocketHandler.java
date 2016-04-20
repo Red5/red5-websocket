@@ -44,7 +44,7 @@ public class WebSocketHandler extends IoHandlerAdapter {
      */
     @Override
     public void messageReceived(IoSession session, Object message) throws Exception {
-        log.trace("Message received on session: {}", session.getId());
+        log.trace("Message received on session: {}  {}", session.getId(), message);
         if (message instanceof WSMessage) {
             WebSocketConnection conn = (WebSocketConnection) session.getAttribute("connection");
             if (conn != null) {
@@ -58,7 +58,7 @@ public class WebSocketHandler extends IoHandlerAdapter {
      */
     @Override
     public void messageSent(IoSession session, Object message) throws Exception {
-        log.trace("Message sent on session: {}", session.getId());
+        log.trace("Message sent on session: {}  {}", session.getId(), String.valueOf(message));
         log.trace("Session read: {} write: {}", session.getReadBytes(), session.getWrittenBytes());
     }
 

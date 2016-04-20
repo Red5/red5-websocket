@@ -173,18 +173,21 @@ public class WebSocketDecoder extends CumulativeProtocolDecoder {
 
                 // TODO expand handling for protocols requested by the client, instead of just echoing back
                 if (headers.containsKey(Constants.WS_HEADER_PROTOCOL)) {
+                    boolean protocolSupported = false;
                     String protocol = (String) headers.get(Constants.WS_HEADER_PROTOCOL);
-                    log.debug("Protocol {} found in the request", protocol);
+                    log.debug("Protocol '{}' found in the request", protocol);
                     // add protocol to the connection
                     conn.setProtocol(protocol);
                     // TODO check listeners for "protocol" support
                     Set<IWebSocketDataListener> listeners = manager.getScope(conn.getPath()).getListeners();
                     for (IWebSocketDataListener listener : listeners) {
                         if (listener.getProtocol().equals(protocol)) {
-                            log.debug("Scope has listener support for the {} protocol", protocol);
+                            //log.debug("Scope has listener support for the {} protocol", protocol);
+                            protocolSupported = true;
                             break;
                         }
                     }
+                    log.debug("Scope listener does{} support the '{}' protocol", (protocolSupported ? "" : "n't"), protocol);
                 }
                 // store connection in the current session
                 session.setAttribute(Constants.CONNECTION, conn);
@@ -250,6 +253,7 @@ public class WebSocketDecoder extends CumulativeProtocolDecoder {
                 if (plugin != null) {
                     log.trace("Found plugin");
                     WebSocketScopeManager manager = plugin.getManager();
+                    log.trace("Manager was found? : {}", manager);
                     // only check that the application is enabled, not the room or sub levels
                     if (manager != null && manager.isEnabled(path)) {
                         log.trace("Path enabled: {}", path);
@@ -261,20 +265,20 @@ public class WebSocketDecoder extends CumulativeProtocolDecoder {
                             @Override
                             public void operationComplete(IoFuture future) {
                                 // close connection
-                                future.getSession().close(false);
+                                future.getSession().closeOnFlush();
                             }
                         });
                         throw new WebSocketException("Handshake failed, path not enabled");
                     }
                 } else {
-                    log.trace("Plugin lookup failed");
+                    log.warn("Plugin lookup failed");
                     HandshakeResponse errResponse = build400Response(conn);
                     WriteFuture future = conn.getSession().write(errResponse);
                     future.addListener(new IoFutureListener<IoFuture>() {
                         @Override
                         public void operationComplete(IoFuture future) {
                             // close connection
-                            future.getSession().close(false);
+                            future.getSession().closeOnFlush();
                         }
                     });
                     throw new WebSocketException("Handshake failed, missing plugin");
