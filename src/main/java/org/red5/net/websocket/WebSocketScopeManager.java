@@ -95,6 +95,7 @@ public class WebSocketScopeManager {
             log.debug("Creating a new scope");
             // add a default scope and listener if none are defined
             WebSocketScope wsScope = new WebSocketScope();
+            wsScope.setScope(scope); 
             wsScope.setPath(String.format("/%s", app));
             // add to scopes
             scopes.put(wsScope.getPath(), wsScope);
@@ -232,6 +233,24 @@ public class WebSocketScopeManager {
     }
 
     /**
+     * Create a web socket scope. Use the IWebSocketScopeListener interface to configure the created scope.
+     * @param path
+     */
+    public void makeScope(String path) {
+        log.debug("makeScope: {}", path);
+        WebSocketScope scope=null;
+        if (!scopes.containsKey(path)) {
+            scope = new WebSocketScope();
+            scope.setPath(path);
+            scopes.put(path, scope);
+            notifyListeners(scope);
+            log.debug("Use the IWebSocketScopeListener interface to be notified of new scopes");
+        } else {
+            log.debug("Scope already exists: {}", path);
+        }
+    }
+
+    /**
      * Get the corresponding scope, if none exists, make new one.
      * 
      * @param conn
@@ -250,7 +269,8 @@ public class WebSocketScopeManager {
                 scope = new WebSocketScope();
                 scope.setPath(path);
                 scopes.put(path, scope);
-                log.debug("Be aware that scopes added by connection don't contain listeners by default");
+                notifyListeners(scope);
+                log.debug("Use the IWebSocketScopeListener interface to be notified of new scopes");
             } else {
                 path = "default";
             }
