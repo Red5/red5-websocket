@@ -3,17 +3,13 @@
     <parent>
         <groupId>org.red5</groupId>
         <artifactId>red5-parent</artifactId>
-<<<<<<< HEAD
         <version>1.0.8-M4</version>
-=======
-        <version>1.0.8-M2</version>
->>>>>>> 445926d934baf58e0b39d2cdb44dbf126aa61401
     </parent>
     <modelVersion>4.0.0</modelVersion>
     <artifactId>websocket</artifactId>
     <packaging>jar</packaging>
     <name>websocket</name>
-    <version>1.5</version>
+    <version>1.6</version>
     <description>Red5 WebSocket plugin</description>
     <url>https://github.com/Red5/red5-websocket</url>
     <organization>
