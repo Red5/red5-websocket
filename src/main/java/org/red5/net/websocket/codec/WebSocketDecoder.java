@@ -441,7 +441,7 @@ public class WebSocketDecoder extends CumulativeProtocolDecoder {
             decoderState.frameLen = (frameInfo2 & (byte) 0x7F);
             log.trace("Payload length: {}", decoderState.frameLen);
             if (decoderState.frameLen == 126) {
-                decoderState.frameLen = in.getShort();
+                decoderState.frameLen = in.getUnsignedShort();
                 log.trace("Payload length updated: {}", decoderState.frameLen);
             } else if (decoderState.frameLen == 127) {
                 long extendedLen = in.getLong();
