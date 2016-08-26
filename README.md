@@ -92,4 +92,5 @@ https://github.com/Red5/red5-websocket-chat
 
 Pre-compiled JAR
 ----------------
-https://mega.co.nz/#!BAkFnKKJ!5QsE31RIzxzevHphlIFbwofVTVFkBuZA7QTGvhzvVx4
+You can find [compiled artifacts via Maven](http://mvnrepository.com/artifact/org.red5/websocket)
+
