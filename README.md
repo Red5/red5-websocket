@@ -63,29 +63,29 @@ If you are not using unlimited strength JCE (you are outside the US), you may ha
                 <property name="keystorePassword" value="password"/>
                 <property name="truststoreFile" value="conf/truststore"/>
                 <property name="truststorePassword" value="password"/>
+                <property name="cipherSuites">
+                    <array>
+                        <value>TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256</value>
+                        <value>TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA</value>
+                        <value>TLS_ECDHE_RSA_WITH_RC4_128_SHA</value>
+                        <value>TLS_RSA_WITH_AES_128_CBC_SHA256</value>
+                        <value>TLS_RSA_WITH_AES_128_CBC_SHA</value>
+                        <value>SSL_RSA_WITH_RC4_128_SHA</value>
+                    </array>
+                </property>
+                <property name="protocols">
+                    <array>
+                        <value>TLSv1</value>
+                        <value>TLSv1.1</value>
+                        <value>TLSv1.2</value>
+                    </array>
+                </property>
             </bean>
         </property>
         <property name="addresses">
             <list>
                 <value>192.168.1.174:10081</value>
             </list>
-        </property>
-        <property name="cipherSuites">
-            <array>
-                <value>TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256</value>
-                <value>TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA</value>
-                <value>TLS_ECDHE_RSA_WITH_RC4_128_SHA</value>
-                <value>TLS_RSA_WITH_AES_128_CBC_SHA256</value>
-                <value>TLS_RSA_WITH_AES_128_CBC_SHA</value>
-                <value>SSL_RSA_WITH_RC4_128_SHA</value>
-            </array>
-        </property>
-        <property name="protocols">
-            <array>
-                <value>TLSv1</value>
-                <value>TLSv1.1</value>
-                <value>TLSv1.2</value>
-            </array>
         </property>
     </bean>
 

@@ -90,6 +90,9 @@ public class SecureWebSocketConfiguration {
             throw new NotActiveException("Keystore or truststore are null");
         }
         SSLContext context = getSslContext();
+        if (context == null) {
+            throw new NotActiveException("SSLContext is null");
+        }
         // create the ssl filter using server mode
         SslFilter sslFilter = new SslFilter(context);
         if (cipherSuites != null) {

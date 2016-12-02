@@ -88,9 +88,14 @@ public class WebSocketTransport implements InitializingBean, DisposableBean {
         log.trace("I/O handler: {}", ioHandler);
         DefaultIoFilterChainBuilder chain = acceptor.getFilterChain();
         // if handling wss init the config
+        SslFilter sslFilter = null;
         if (secureConfig != null) {
-            SslFilter sslFilter = secureConfig.getSslFilter();
-            chain.addFirst("sslFilter", sslFilter);
+            try {
+                sslFilter = secureConfig.getSslFilter();
+                chain.addFirst("sslFilter", sslFilter);
+            } catch (Exception e) {
+                log.warn("SSL configuration failed, websocket will not be secure", e);
+            }
         }
         if (log.isTraceEnabled()) {
             chain.addLast("logger", new LoggingFilter());
@@ -109,14 +114,14 @@ public class WebSocketTransport implements InitializingBean, DisposableBean {
         sessionConf.setSendBufferSize(sendBufferSize);
         acceptor.setReuseAddress(true);
         if (addresses.isEmpty()) {
-            if (secureConfig != null) {
+            if (sslFilter != null) {
                 log.info("WebSocket (wss) will be bound to port {}", port);
             } else {
                 log.info("WebSocket (ws) will be bound to port {}", port);
             }
             acceptor.bind(new InetSocketAddress(port));
         } else {
-            if (secureConfig != null) {
+            if (sslFilter != null) {
                 log.info("WebSocket (wss) will be bound to {}", addresses);
             } else {
                 log.info("WebSocket (ws) will be bound to {}", addresses);
