@@ -21,6 +21,9 @@ package org.red5.net.websocket;
 import java.io.File;
 import java.io.NotActiveException;
 import java.security.KeyStore;
+import java.security.Provider;
+import java.security.Security;
+import java.util.Arrays;
 
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLParameters;
@@ -28,6 +31,7 @@ import javax.net.ssl.SSLParameters;
 import org.apache.mina.filter.ssl.KeyStoreFactory;
 import org.apache.mina.filter.ssl.SslContextFactory;
 import org.apache.mina.filter.ssl.SslFilter;
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -61,10 +65,25 @@ public class SecureWebSocketConfiguration {
     private String truststoreFile;
 
     /**
-     * The keystore type, valid options are JKS and PKCS12
+     * Names of the SSL cipher suites which are currently enabled for use.
      */
-    @SuppressWarnings("unused")
-    private String keystoreType = "JKS";
+    private String[] cipherSuites;
+
+    /**
+     * Names of the protocol versions which are currently enabled for use.
+     */
+    private String[] protocols;
+
+    static {
+        // add bouncycastle security provider
+        Security.addProvider(new BouncyCastleProvider());
+        if (log.isTraceEnabled()) {
+            Provider[] providers = Security.getProviders();
+            for (Provider provider : providers) {
+                log.trace("Provider: {} = {}", provider.getName(), provider.getInfo());
+            }
+        }
+    }
 
     public SslFilter getSslFilter() throws Exception {
         if (keystoreFile == null || truststoreFile == null) {
@@ -73,10 +92,20 @@ public class SecureWebSocketConfiguration {
         SSLContext context = getSslContext();
         // create the ssl filter using server mode
         SslFilter sslFilter = new SslFilter(context);
+        if (cipherSuites != null) {
+            sslFilter.setEnabledCipherSuites(cipherSuites);
+        }
+        if (protocols != null) {
+            if (log.isDebugEnabled()) {
+                log.debug("Using these protocols: {}", Arrays.toString(protocols));
+            }
+            sslFilter.setEnabledProtocols(protocols);
+        }
         return sslFilter;
     }
 
     private SSLContext getSslContext() {
+        // create the ssl context
         SSLContext sslContext = null;
         try {
             log.debug("Keystore: {}", keystoreFile);
@@ -86,30 +115,38 @@ public class SecureWebSocketConfiguration {
             File trustStore = new File(truststoreFile);
             log.trace("Truststore - read: {} path: {}", trustStore.canRead(), trustStore.getCanonicalPath());
             if (keyStore.exists() && trustStore.exists()) {
+                // keystore
                 final KeyStoreFactory keyStoreFactory = new KeyStoreFactory();
                 keyStoreFactory.setDataFile(keyStore);
                 keyStoreFactory.setPassword(keystorePassword);
-
+                // truststore
                 final KeyStoreFactory trustStoreFactory = new KeyStoreFactory();
                 trustStoreFactory.setDataFile(trustStore);
                 trustStoreFactory.setPassword(truststorePassword);
-
+                // ssl context factory
                 final SslContextFactory sslContextFactory = new SslContextFactory();
+                //sslContextFactory.setProtocol("TLS");
+                // get keystore
                 final KeyStore ks = keyStoreFactory.newInstance();
                 sslContextFactory.setKeyManagerFactoryKeyStore(ks);
-
+                // get truststore
                 final KeyStore ts = trustStoreFactory.newInstance();
                 sslContextFactory.setTrustManagerFactoryKeyStore(ts);
                 sslContextFactory.setKeyManagerFactoryKeyStorePassword(keystorePassword);
+                // get ssl context
                 sslContext = sslContextFactory.newInstance();
-                log.debug("SSL provider is: {}", sslContext.getProvider());
-
+                log.debug("SSL provider: {}", sslContext.getProvider());
+                // get ssl context parameters
                 SSLParameters params = sslContext.getDefaultSSLParameters();
-                log.debug("SSL context params - need client auth: {} want client auth: {} endpoint id algorithm: {}", params.getNeedClientAuth(), params.getWantClientAuth(), params.getEndpointIdentificationAlgorithm());
-                String[] supportedProtocols = params.getProtocols();
-                for (String protocol : supportedProtocols) {
-                    log.debug("SSL context supported protocol: {}", protocol);
+                if (log.isDebugEnabled()) {
+                    log.debug("SSL context params - need client auth: {} want client auth: {} endpoint id algorithm: {}", params.getNeedClientAuth(), params.getWantClientAuth(), params.getEndpointIdentificationAlgorithm());
+                    String[] supportedProtocols = params.getProtocols();
+                    for (String protocol : supportedProtocols) {
+                        log.debug("SSL context supported protocol: {}", protocol);
+                    }
                 }
+                // compatibility: remove the SSLv2Hello message in the available protocols - some systems will fail 
+                // to handshake if TSLv1 messages are enwrapped with SSLv2 messages, Java 6 tries to send TSLv1 embedded in SSLv2
             } else {
                 log.warn("Keystore or Truststore file does not exist");
             }
@@ -157,13 +194,20 @@ public class SecureWebSocketConfiguration {
         this.truststoreFile = path;
     }
 
-    /**
-     * Set the key store type, JKS or PKCS12.
-     * 
-     * @param keystoreType
-     */
-    public void setKeystoreType(String keystoreType) {
-        this.keystoreType = keystoreType;
+    public String[] getCipherSuites() {
+        return cipherSuites;
+    }
+
+    public void setCipherSuites(String[] cipherSuites) {
+        this.cipherSuites = cipherSuites;
+    }
+
+    public String[] getProtocols() {
+        return protocols;
+    }
+
+    public void setProtocols(String[] protocols) {
+        this.protocols = protocols;
     }
 
 }

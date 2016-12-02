@@ -15,7 +15,8 @@ Configuration
 Add the WebSocket transport to the jee-container.xml or red5.xml. If placing it in the red5.xml, ensure the bean comes after the plugin launcher entry.
 
 To bind to one or many IP addresses and ports:
-```
+
+```xml
 <bean id="webSocketTransport" class="org.red5.net.websocket.WebSocketTransport">
         <property name="addresses">
             <list>
@@ -36,11 +37,10 @@ If you don't want to specify the IP:
 ```
 To support secure communication (wss) add this:
 
-```
+```xml
     <bean id="webSocketTransportSecure" class="org.red5.net.websocket.WebSocketTransport">
         <property name="secureConfig">
             <bean id="webSocketSecureConfig" class="org.red5.net.websocket.SecureWebSocketConfiguration">
-                <property name="keystoreType" value="JKS"/>
                 <property name="keystoreFile" value="conf/keystore"/>
                 <property name="keystorePassword" value="password"/>
                 <property name="truststoreFile" value="conf/truststore"/>
@@ -54,6 +54,43 @@ To support secure communication (wss) add this:
         </property>
     </bean>
 ```
+If you are not using unlimited strength JCE (you are outside the US), you may have to specify the cipher suites as shown below:
+```xml
+    <bean id="webSocketTransportSecure" class="org.red5.net.websocket.WebSocketTransport">
+        <property name="secureConfig">
+            <bean id="webSocketSecureConfig" class="org.red5.net.websocket.SecureWebSocketConfiguration">
+                <property name="keystoreFile" value="conf/keystore"/>
+                <property name="keystorePassword" value="password"/>
+                <property name="truststoreFile" value="conf/truststore"/>
+                <property name="truststorePassword" value="password"/>
+            </bean>
+        </property>
+        <property name="addresses">
+            <list>
+                <value>192.168.1.174:10081</value>
+            </list>
+        </property>
+        <property name="cipherSuites">
+            <array>
+                <value>TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256</value>
+                <value>TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA</value>
+                <value>TLS_ECDHE_RSA_WITH_RC4_128_SHA</value>
+                <value>TLS_RSA_WITH_AES_128_CBC_SHA256</value>
+                <value>TLS_RSA_WITH_AES_128_CBC_SHA</value>
+                <value>SSL_RSA_WITH_RC4_128_SHA</value>
+            </array>
+        </property>
+        <property name="protocols">
+            <array>
+                <value>TLSv1</value>
+                <value>TLSv1.1</value>
+                <value>TLSv1.2</value>
+            </array>
+        </property>
+    </bean>
+
+```
+
 
 Adding WebSocket to an Application
 ------------------------
