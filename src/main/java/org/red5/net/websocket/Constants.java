@@ -25,7 +25,11 @@ package org.red5.net.websocket;
  */
 public class Constants {
 
-    public final static String CONNECTION = "connection";
+    public static final String MANAGER = "ws.manager";
+
+    public static final String SCOPE = "ws.scope";
+
+    public final static String CONNECTION = "ws.connection";
 
     public final static String SESSION = "session";
 
@@ -49,5 +53,4 @@ public class Constants {
     public static final String WEBSOCKET_MAGIC_STRING = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
 
     public static final byte[] CRLF = { 0x0D, 0x0A };
-
 }

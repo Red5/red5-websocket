@@ -64,7 +64,7 @@ public class WebSocketTransport implements InitializingBean, DisposableBean {
 
     private int port = 80;
 
-    private Set<String> addresses = new HashSet<String>();
+    private Set<String> addresses = new HashSet<>();
 
     private IoHandlerAdapter ioHandler;
 

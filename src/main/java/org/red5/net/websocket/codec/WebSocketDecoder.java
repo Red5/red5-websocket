@@ -157,8 +157,6 @@ public class WebSocketDecoder extends CumulativeProtocolDecoder {
                 log.trace("Header map: {}", headers);
             }
             if (!headers.isEmpty() && headers.containsKey(Constants.WS_HEADER_KEY)) {
-                // get the scope manager
-                WebSocketScopeManager manager = ((WebSocketPlugin) PluginRegistry.getPlugin("WebSocketPlugin")).getManager();
                 // add the headers to the connection, they may be of use to implementers
                 conn.setHeaders(headers);
                 // add query string parameters
@@ -168,6 +166,14 @@ public class WebSocketDecoder extends CumulativeProtocolDecoder {
                 // check the version
                 if (!"13".equals(headers.get(Constants.WS_HEADER_VERSION))) {
                     log.info("Version 13 was not found in the request, communications may fail");
+                }
+                // get the path 
+                String path = conn.getPath();
+                // get the scope manager
+                WebSocketScopeManager manager = (WebSocketScopeManager) session.getAttribute(Constants.MANAGER);
+                if (manager == null) {
+                    WebSocketPlugin plugin = (WebSocketPlugin) PluginRegistry.getPlugin("WebSocketPlugin");
+                    manager = plugin.getManager(path);
                 }
                 // TODO add handling for extensions
 
@@ -179,7 +185,7 @@ public class WebSocketDecoder extends CumulativeProtocolDecoder {
                     // add protocol to the connection
                     conn.setProtocol(protocol);
                     // TODO check listeners for "protocol" support
-                    Set<IWebSocketDataListener> listeners = manager.getScope(conn.getPath()).getListeners();
+                    Set<IWebSocketDataListener> listeners = manager.getScope(path).getListeners();
                     for (IWebSocketDataListener listener : listeners) {
                         if (listener.getProtocol().equals(protocol)) {
                             //log.debug("Scope has listener support for the {} protocol", protocol);
@@ -189,6 +195,8 @@ public class WebSocketDecoder extends CumulativeProtocolDecoder {
                     }
                     log.debug("Scope listener does{} support the '{}' protocol", (protocolSupported ? "" : "n't"), protocol);
                 }
+                // store manager in the current session
+                session.setAttribute(Constants.MANAGER, manager);
                 // store connection in the current session
                 session.setAttribute(Constants.CONNECTION, conn);
                 // handshake is finished
@@ -252,7 +260,7 @@ public class WebSocketDecoder extends CumulativeProtocolDecoder {
                 WebSocketPlugin plugin = (WebSocketPlugin) PluginRegistry.getPlugin("WebSocketPlugin");
                 if (plugin != null) {
                     log.trace("Found plugin");
-                    WebSocketScopeManager manager = plugin.getManager();
+                    WebSocketScopeManager manager = plugin.getManager(path);
                     log.trace("Manager was found? : {}", manager);
                     // only check that the application is enabled, not the room or sub levels
                     if (manager != null && manager.isEnabled(path)) {

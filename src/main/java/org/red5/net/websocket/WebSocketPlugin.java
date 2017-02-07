@@ -18,10 +18,15 @@
 
 package org.red5.net.websocket;
 
+import java.util.Arrays;
+import java.util.Map.Entry;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+
 import org.red5.server.Server;
 import org.red5.server.adapter.MultiThreadedApplicationAdapter;
+import org.red5.server.api.scope.IScope;
 import org.red5.server.plugin.Red5Plugin;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -40,7 +45,8 @@ public class WebSocketPlugin extends Red5Plugin {
 
     private Logger log = LoggerFactory.getLogger(WebSocketPlugin.class);
 
-    private WebSocketScopeManager manager;
+    // holds application scopes and their associated websocket scope manager
+    private static ConcurrentMap<IScope, WebSocketScopeManager> managerMap = new ConcurrentHashMap<>();
 
     public WebSocketPlugin() {
         log.trace("WebSocketPlugin ctor");
@@ -53,7 +59,17 @@ public class WebSocketPlugin extends Red5Plugin {
     public void doStart() throws Exception {
         super.doStart();
         log.trace("WebSocketPlugin start");
-        manager = new WebSocketScopeManager();
+    }
+
+    @Override
+    public void doStop() throws Exception {
+        if (!managerMap.isEmpty()) {
+            for (Entry<IScope, WebSocketScopeManager> entry : managerMap.entrySet()) {
+                entry.getValue().stop();
+            }
+            managerMap.clear();
+        }
+        super.doStop();
     }
 
     /**
@@ -72,8 +88,40 @@ public class WebSocketPlugin extends Red5Plugin {
         return super.getServer();
     }
 
+    /**
+     * Returns a WebSocketScopeManager for a given scope.
+     * 
+     * @param scope
+     * @return WebSocketScopeManager if registered for the given scope and null otherwise
+     */
+    public WebSocketScopeManager getManager(IScope scope) {
+        return managerMap.get(scope);
+    }
+
+    /**
+     * Returns a WebSocketScopeManager for a given path.
+     * 
+     * @param path
+     * @return WebSocketScopeManager if registered for the given path and null otherwise
+     */
+    public WebSocketScopeManager getManager(String path) {
+        // determine what the app scope name is
+        String[] parts = path.split("\\/");
+        log.debug("Path parts: {}", Arrays.toString(parts));
+        if (parts.length > 0) {
+            for (Entry<IScope, WebSocketScopeManager> entry : managerMap.entrySet()) {
+                IScope appScope = entry.getKey();
+                if (appScope.getName().equals(parts[0])) {
+                    return entry.getValue();
+                }
+            }
+        }
+        return null;
+    }
+
+    @Deprecated
     public WebSocketScopeManager getManager() {
-        return manager;
+        throw new UnsupportedOperationException("Use getManager(IScope scope) instead");
     }
 
     /**
@@ -82,7 +130,12 @@ public class WebSocketPlugin extends Red5Plugin {
     @Override
     public void setApplication(MultiThreadedApplicationAdapter application) {
         log.info("WebSocketPlugin application: {}", application);
-        manager.addApplication(application.getScope());
+        // get the app scope
+        IScope appScope = application.getScope();
+        // put if not already there
+        managerMap.putIfAbsent(appScope, new WebSocketScopeManager());
+        // add the app scope to the manager
+        managerMap.get(appScope).setApplication(appScope);
         super.setApplication(application);
     }
 

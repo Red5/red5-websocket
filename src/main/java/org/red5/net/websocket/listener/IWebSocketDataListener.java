@@ -63,4 +63,9 @@ public interface IWebSocketDataListener {
      */
     public void onWSDisconnect(WebSocketConnection conn);
 
+    /**
+     * Stops the listener.
+     */
+    public void stop();
+
 }

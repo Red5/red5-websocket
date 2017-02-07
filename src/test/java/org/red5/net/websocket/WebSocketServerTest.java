@@ -74,6 +74,8 @@ import org.red5.net.websocket.model.HandshakeRequest;
 import org.red5.net.websocket.model.MessageType;
 import org.red5.net.websocket.model.Packet;
 import org.red5.net.websocket.model.WSMessage;
+import org.red5.server.adapter.MultiThreadedApplicationAdapter;
+import org.red5.server.api.scope.IScope;
 import org.red5.server.plugin.PluginRegistry;
 import org.red5.server.scope.GlobalScope;
 import org.slf4j.Logger;
@@ -141,9 +143,16 @@ public class WebSocketServerTest {
         PluginRegistry.register(plugin);
         // start plugin
         plugin.doStart();
+        // create a scope for the manager
+        IScope appScope = new GlobalScope();
+        // create an app
+        MultiThreadedApplicationAdapter app = new MultiThreadedApplicationAdapter();
+        app.setScope(appScope);
+        // add the app
+        plugin.setApplication(app);
         // get the manager
-        WebSocketScopeManager manager = plugin.getManager();
-        manager.addApplication(new GlobalScope());
+        WebSocketScopeManager manager = plugin.getManager(appScope);
+        manager.setApplication(appScope);
         // wait for server
         while (!WSServer.isListening()) {
             Thread.sleep(10L);
@@ -349,9 +358,16 @@ public class WebSocketServerTest {
         PluginRegistry.register(plugin);
         // start plugin
         plugin.doStart();
+        // create a scope for the manager
+        IScope appScope = new GlobalScope();
+        // create an app
+        MultiThreadedApplicationAdapter app = new MultiThreadedApplicationAdapter();
+        app.setScope(appScope);
+        // add the app
+        plugin.setApplication(app);
         // get the manager
-        WebSocketScopeManager manager = plugin.getManager();
-        manager.addApplication(new GlobalScope());
+        WebSocketScopeManager manager = plugin.getManager(appScope);
+        manager.setApplication(appScope);
         // wait for server
         while (!WSServer.isListening()) {
             Thread.sleep(10L);

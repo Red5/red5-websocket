@@ -32,17 +32,22 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.InitializingBean;
 
+/**
+ * WebSocketScope contains an IScope and keeps track of WebSocketConnection and IWebSocketDataListener instances.
+ * 
+ * @author Paul Gregoire (mondain@gmail.com)
+ */
 public class WebSocketScope implements InitializingBean, DisposableBean {
 
-    private Logger log = LoggerFactory.getLogger(WebSocketScope.class);
+    private static Logger log = LoggerFactory.getLogger(WebSocketScope.class);
 
-    private CopyOnWriteArraySet<WebSocketConnection> conns = new CopyOnWriteArraySet<WebSocketConnection>();
+    protected CopyOnWriteArraySet<WebSocketConnection> conns = new CopyOnWriteArraySet<>();
 
-    private CopyOnWriteArraySet<IWebSocketDataListener> listeners = new CopyOnWriteArraySet<IWebSocketDataListener>();
+    protected CopyOnWriteArraySet<IWebSocketDataListener> listeners = new CopyOnWriteArraySet<>();
 
-    private IScope scope;
+    protected IScope scope;
 
-    private String path = "default";
+    protected String path = "default";
 
     @Override
     public void afterPropertiesSet() throws Exception {
@@ -61,22 +66,27 @@ public class WebSocketScope implements InitializingBean, DisposableBean {
         log.info("Application scope: {}", scope);
         // set the logger to the app scope
         //log = Red5LoggerFactory.getLogger(WebSocketScope.class, scope.getName());
-        WebSocketScopeManager manager = ((WebSocketPlugin) PluginRegistry.getPlugin("WebSocketPlugin")).getManager();
+        WebSocketScopeManager manager = ((WebSocketPlugin) PluginRegistry.getPlugin("WebSocketPlugin")).getManager(scope);
+        manager.setApplication(scope);
+        log.info("WebSocket app added: {}", scope.getName());
         manager.addWebSocketScope(this);
         log.info("WebSocket scope added");
-        manager.addApplication(scope);
-        log.info("WebSocket app added: {}", scope.getName());
     }
 
     /**
      * Un-registers from the WebSocketScopeManager.
      */
     public void unregister() {
-        WebSocketScopeManager manager = ((WebSocketPlugin) PluginRegistry.getPlugin("WebSocketPlugin")).getManager();
-        manager.removeWebSocketScope(this);
-        log.info("WebSocket scope removed");
-        manager.removeApplication(scope);
-        log.info("WebSocket app removed: {}", scope.getName());
+        // clean up the connections by first closing them
+        for (WebSocketConnection conn : conns) {
+            conn.close();
+        }
+        conns.clear();
+        // clean up the listeners by first stopping them
+        for (IWebSocketDataListener listener : listeners) {
+            listener.stop();
+        }
+        listeners.clear();
     }
 
     /**
@@ -104,6 +114,8 @@ public class WebSocketScope implements InitializingBean, DisposableBean {
      */
     public void setScope(IScope scope) {
         this.scope = scope;
+        // set this ws scope as an attribute for ez lookup
+        this.scope.setAttribute(Constants.SCOPE, this);
     }
 
     /**

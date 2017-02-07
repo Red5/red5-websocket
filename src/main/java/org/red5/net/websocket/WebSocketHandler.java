@@ -46,7 +46,7 @@ public class WebSocketHandler extends IoHandlerAdapter {
     public void messageReceived(IoSession session, Object message) throws Exception {
         log.trace("Message received on session: {}  {}", session.getId(), message);
         if (message instanceof WSMessage) {
-            WebSocketConnection conn = (WebSocketConnection) session.getAttribute("connection");
+            WebSocketConnection conn = (WebSocketConnection) session.getAttribute(Constants.CONNECTION);
             if (conn != null) {
                 conn.receive((WSMessage) message);
             }
@@ -69,18 +69,30 @@ public class WebSocketHandler extends IoHandlerAdapter {
     public void sessionClosed(IoSession session) throws Exception {
         log.trace("Session closed");
         // remove connection from scope
-        WebSocketConnection conn = (WebSocketConnection) session.getAttribute("connection");
-        // remove from the manager
-        WebSocketPlugin plugin = (WebSocketPlugin) PluginRegistry.getPlugin("WebSocketPlugin");
-        if (plugin != null) {
-            WebSocketScopeManager manager = plugin.getManager();
-            if (manager != null) {
-                manager.removeConnection(conn);
+        WebSocketConnection conn = (WebSocketConnection) session.removeAttribute(Constants.CONNECTION);
+        if (conn != null) {
+            // remove from the manager
+            WebSocketPlugin plugin = (WebSocketPlugin) PluginRegistry.getPlugin("WebSocketPlugin");
+            if (plugin != null) {
+                String path = conn.getPath();
+                if (path != null) {
+                    WebSocketScopeManager manager = (WebSocketScopeManager) session.removeAttribute(Constants.MANAGER);
+                    if (manager == null) {
+                        manager = plugin.getManager(path);
+                    }
+                    if (manager != null) {
+                        manager.removeConnection(conn);
+                    } else {
+                        log.debug("WebSocket manager was not found");
+                    }
+                } else {
+                    log.debug("WebSocket connection path was null");
+                }
             } else {
-                log.debug("WebSocket manager was not found");
+                log.debug("WebSocket plugin was not found");
             }
         } else {
-            log.debug("WebSocket plugin was not found");
+            log.debug("WebSocket connection was null");
         }
         super.sessionClosed(session);
     }

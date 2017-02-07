@@ -54,18 +54,30 @@ public class DefaultWebSocketDataListener extends WebSocketDataListener {
         // assume we have text
         String msg = new String(message.getPayload().array());
         log.info("onWSMessage: {}", msg);
+        // get the path 
+        String path = message.getPath();
         // just echo back the message
-        WebSocketScopeManager manager = ((WebSocketPlugin) PluginRegistry.getPlugin("WebSocketPlugin")).getManager();
-        WebSocketScope scope = manager.getScope(message.getPath());
-        Set<WebSocketConnection> conns = scope.getConns();
-        for (WebSocketConnection conn : conns) {
-            log.debug("Echoing to {}", conn);
-            try {
-                conn.send(msg);
-            } catch (UnsupportedEncodingException e) {
-                log.warn("Encoding issue with the message data: {}", message, e);
+        WebSocketScopeManager manager = ((WebSocketPlugin) PluginRegistry.getPlugin("WebSocketPlugin")).getManager(path);
+        if (manager != null) {
+            // get the ws scope
+            WebSocketScope wsScope = manager.getScope(path);
+            Set<WebSocketConnection> conns = wsScope.getConns();
+            for (WebSocketConnection conn : conns) {
+                log.debug("Echoing to {}", conn);
+                try {
+                    conn.send(msg);
+                } catch (UnsupportedEncodingException e) {
+                    log.warn("Encoding issue with the message data: {}", message, e);
+                }
             }
+        } else {
+            log.info("No manager found for path: {}", path);
         }
+    }
+
+    @Override
+    public void stop() {
+        log.info("Stop");
     }
 
 }

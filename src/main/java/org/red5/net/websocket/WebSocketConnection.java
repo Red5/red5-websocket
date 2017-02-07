@@ -101,10 +101,12 @@ public class WebSocketConnection {
     public void receive(WSMessage message) {
         log.trace("receive message");
         if (isConnected()) {
-            WebSocketPlugin plugin = (WebSocketPlugin) PluginRegistry.getPlugin("WebSocketPlugin");
-            WebSocketScopeManager manager = plugin.getManager();
-
-            WebSocketScope scope = manager.getScope(getPath());
+            WebSocketScopeManager manager = (WebSocketScopeManager) session.getAttribute(Constants.MANAGER);
+            if (manager == null) {
+                WebSocketPlugin plugin = (WebSocketPlugin) PluginRegistry.getPlugin("WebSocketPlugin");
+                manager = plugin.getManager(path);
+            }
+            WebSocketScope scope = manager.getScope(path);
             scope.onMessage(message);
         } else {
             log.warn("Not connected");
