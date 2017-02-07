@@ -25,6 +25,7 @@ import java.util.concurrent.CopyOnWriteArraySet;
 import org.red5.net.websocket.listener.DefaultWebSocketDataListener;
 import org.red5.net.websocket.listener.IWebSocketDataListener;
 import org.red5.net.websocket.listener.IWebSocketScopeListener;
+import org.red5.net.websocket.model.WebSocketEvent;
 import org.red5.server.api.IContext;
 import org.red5.server.api.scope.IScope;
 import org.slf4j.Logger;
@@ -110,19 +111,25 @@ public class WebSocketScopeManager {
             WebSocketScope wsScope = new WebSocketScope();
             wsScope.setScope(scope);
             wsScope.setPath(String.format("/%s", app));
-            // add to scopes
-            scopes.put(wsScope.getPath(), wsScope);
-            notifyListeners(wsScope);
             if (wsScope.getListeners().isEmpty()) {
                 log.debug("adding default listener");
                 wsScope.addListener(new DefaultWebSocketDataListener());
             }
+            notifyListeners(WebSocketEvent.SCOPE_CREATED, wsScope);
+            // add to scopes
+            addWebSocketScope(wsScope);
         }
     }
 
-    private void notifyListeners(WebSocketScope wsScope) {
-        for (IWebSocketScopeListener l : scopeListeners) {
-            l.scopeCreated(wsScope);
+    private void notifyListeners(WebSocketEvent event, WebSocketScope wsScope) {
+        for (IWebSocketScopeListener listener : scopeListeners) {
+            switch (event) {
+                case SCOPE_CREATED:
+                    listener.scopeCreated(wsScope);
+                    break;
+                default:
+
+            }
         }
     }
 
@@ -143,9 +150,9 @@ public class WebSocketScopeManager {
      */
     public void addWebSocketScope(WebSocketScope webSocketScope) {
         String path = webSocketScope.getPath();
-        if (!scopes.containsKey(path)) {
-            scopes.put(path, webSocketScope);
+        if (scopes.putIfAbsent(path, webSocketScope) == null) {
             log.info("addWebSocketScope: {}", webSocketScope);
+            notifyListeners(WebSocketEvent.SCOPE_ADDED, webSocketScope);
         }
     }
 
@@ -156,7 +163,10 @@ public class WebSocketScopeManager {
      */
     public void removeWebSocketScope(WebSocketScope webSocketScope) {
         log.info("removeWebSocketScope: {}", webSocketScope);
-        scopes.remove(webSocketScope.getPath());
+        WebSocketScope wsScope = scopes.remove(webSocketScope.getPath());
+        if (wsScope != null) {
+            notifyListeners(WebSocketEvent.SCOPE_REMOVED, wsScope);
+        }
     }
 
     /**
@@ -183,7 +193,7 @@ public class WebSocketScopeManager {
                 scope.removeConnection(conn);
                 if (!scope.isValid()) {
                     // scope is not valid. delete this.
-                    scopes.remove(scope);
+                    removeWebSocketScope(scope);
                 }
             }
         }
@@ -220,7 +230,7 @@ public class WebSocketScopeManager {
             scope.removeListener(listener);
             if (!scope.isValid()) {
                 // scope is not valid. delete this
-                scopes.remove(scope);
+                removeWebSocketScope(scope);
             }
         } else {
             log.info("Scope not found for path: {}", path);
@@ -252,12 +262,37 @@ public class WebSocketScopeManager {
      */
     public void makeScope(String path) {
         log.debug("makeScope: {}", path);
-        WebSocketScope scope = null;
+        WebSocketScope wsScope = null;
         if (!scopes.containsKey(path)) {
-            scope = new WebSocketScope();
-            scope.setPath(path);
-            scopes.put(path, scope);
-            notifyListeners(scope);
+            // new websocket scope
+            wsScope = new WebSocketScope();
+            wsScope.setPath(path);
+            notifyListeners(WebSocketEvent.SCOPE_CREATED, wsScope);
+            addWebSocketScope(wsScope);
+            log.debug("Use the IWebSocketScopeListener interface to be notified of new scopes");
+        } else {
+            log.debug("Scope already exists: {}", path);
+        }
+    }
+
+    /**
+     * Create a web socket scope from a server IScope. Use the IWebSocketScopeListener interface to configure the created scope.
+     * 
+     * @param scope
+     */
+    public void makeScope(IScope scope) {
+        log.debug("makeScope: {}", scope);
+        String path = scope.getPath();
+        WebSocketScope wsScope = null;
+        if (!scopes.containsKey(path)) {
+            // add the name to the collection (no '/' prefix)
+            activeRooms.add(scope.getName());
+            // new websocket scope for the server scope
+            wsScope = new WebSocketScope();
+            wsScope.setPath(path);
+            wsScope.setScope(scope);
+            notifyListeners(WebSocketEvent.SCOPE_CREATED, wsScope);
+            addWebSocketScope(wsScope);
             log.debug("Use the IWebSocketScopeListener interface to be notified of new scopes");
         } else {
             log.debug("Scope already exists: {}", path);
@@ -268,30 +303,30 @@ public class WebSocketScopeManager {
      * Get the corresponding scope, if none exists, make new one.
      * 
      * @param conn
-     * @return scope
+     * @return wsScope
      */
     private WebSocketScope getScope(WebSocketConnection conn) {
         if (log.isTraceEnabled()) {
             log.trace("Scopes: {}", scopes);
         }
         log.debug("getScope: {}", conn);
-        WebSocketScope scope;
+        WebSocketScope wsScope;
         String path = conn.getPath();
         if (!scopes.containsKey(path)) {
             // check for default scope
             if (!scopes.containsKey("default")) {
-                scope = new WebSocketScope();
-                scope.setPath(path);
-                scopes.put(path, scope);
-                notifyListeners(scope);
+                wsScope = new WebSocketScope();
+                wsScope.setPath(path);
+                notifyListeners(WebSocketEvent.SCOPE_CREATED, wsScope);
+                addWebSocketScope(wsScope);
                 log.debug("Use the IWebSocketScopeListener interface to be notified of new scopes");
             } else {
                 path = "default";
             }
         }
-        scope = scopes.get(path);
-        log.debug("Returning: {}", scope);
-        return scope;
+        wsScope = scopes.get(path);
+        log.debug("Returning: {}", wsScope);
+        return wsScope;
     }
 
     /**
@@ -311,6 +346,13 @@ public class WebSocketScopeManager {
     public void setApplication(IScope appScope) {
         log.debug("Application scope: {}", appScope);
         this.appScope = appScope;
+        // add the name to the collection (no '/' prefix)
+        activeRooms.add(appScope.getName());
+    }
+
+    @Override
+    public String toString() {
+        return String.format("App scope: %s%nActive rooms: %s%nWS scopes: %s%nWS listeners: %s%n", appScope, activeRooms, scopes, scopeListeners);
     }
 
 }

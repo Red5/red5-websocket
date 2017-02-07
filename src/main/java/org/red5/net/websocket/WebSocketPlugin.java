@@ -105,14 +105,20 @@ public class WebSocketPlugin extends Red5Plugin {
      * @return WebSocketScopeManager if registered for the given path and null otherwise
      */
     public WebSocketScopeManager getManager(String path) {
+        log.debug("getManager: {}", path);
         // determine what the app scope name is
         String[] parts = path.split("\\/");
-        log.debug("Path parts: {}", Arrays.toString(parts));
+        if (log.isTraceEnabled()) {
+            log.trace("Path parts: {}", Arrays.toString(parts));
+        }
         if (parts.length > 0) {
             for (Entry<IScope, WebSocketScopeManager> entry : managerMap.entrySet()) {
                 IScope appScope = entry.getKey();
-                if (appScope.getName().equals(parts[0])) {
+                if (appScope.getName().equals(parts[1])) {
+                    log.debug("Application scope name matches path: {}", parts[1]);
                     return entry.getValue();
+                } else if (log.isTraceEnabled()) {
+                    log.trace("Application scope name: {} didnt match path: {}", appScope.getName(), parts[1]);
                 }
             }
         }
@@ -122,6 +128,16 @@ public class WebSocketPlugin extends Red5Plugin {
     @Deprecated
     public WebSocketScopeManager getManager() {
         throw new UnsupportedOperationException("Use getManager(IScope scope) instead");
+    }
+
+    /**
+     * Removes and returns the WebSocketScopeManager for the given scope if it exists and returns null if it does not.
+     *
+     * @param scope Scope for which the manager is registered
+     * @return WebSocketScopeManager if registered for the given path and null otherwise
+     */
+    public WebSocketScopeManager removeManager(IScope scope) {
+        return managerMap.remove(scope);
     }
 
     /**

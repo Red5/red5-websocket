@@ -49,6 +49,15 @@ public class WebSocketScope implements InitializingBean, DisposableBean {
 
     protected String path = "default";
 
+    public WebSocketScope() {
+    }
+
+    public WebSocketScope(IScope scope) {
+        log.debug("Creating WebSocket scope for: {}", scope);
+        setScope(scope);
+        setPath(String.format("/%s", scope.getName()));
+    }
+
     @Override
     public void afterPropertiesSet() throws Exception {
         register();
