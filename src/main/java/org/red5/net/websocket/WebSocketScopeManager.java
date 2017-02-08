@@ -53,6 +53,9 @@ public class WebSocketScopeManager {
     // currently active rooms
     private CopyOnWriteArraySet<String> activeRooms = new CopyOnWriteArraySet<>();
 
+    // whether or not to copy listeners from parent to child on create
+    protected boolean copyListeners = true;
+
     public void addListener(IWebSocketScopeListener listener) {
         scopeListeners.add(listener);
     }
@@ -238,24 +241,6 @@ public class WebSocketScopeManager {
     }
 
     /**
-     * Get the corresponding scope.
-     * 
-     * @param path
-     *            scope path
-     * @return scope
-     */
-    public WebSocketScope getScope(String path) {
-        log.debug("getScope: {}", path);
-        WebSocketScope scope = scopes.get(path);
-        // if we dont find a scope, go for default
-        if (scope == null) {
-            scope = scopes.get("default");
-        }
-        log.debug("Returning: {}", scope);
-        return scope;
-    }
-
-    /**
      * Create a web socket scope. Use the IWebSocketScopeListener interface to configure the created scope.
      * 
      * @param path
@@ -282,7 +267,7 @@ public class WebSocketScopeManager {
      */
     public void makeScope(IScope scope) {
         log.debug("makeScope: {}", scope);
-        String path = scope.getPath();
+        String path = scope.getContextPath();
         WebSocketScope wsScope = null;
         if (!scopes.containsKey(path)) {
             // add the name to the collection (no '/' prefix)
@@ -297,6 +282,24 @@ public class WebSocketScopeManager {
         } else {
             log.debug("Scope already exists: {}", path);
         }
+    }
+
+    /**
+     * Get the corresponding scope.
+     * 
+     * @param path
+     *            scope path
+     * @return scope
+     */
+    public WebSocketScope getScope(String path) {
+        log.debug("getScope: {}", path);
+        WebSocketScope scope = scopes.get(path);
+        // if we dont find a scope, go for default
+        if (scope == null) {
+            scope = scopes.get("default");
+        }
+        log.debug("Returning: {}", scope);
+        return scope;
     }
 
     /**
@@ -319,7 +322,7 @@ public class WebSocketScopeManager {
                 wsScope.setPath(path);
                 notifyListeners(WebSocketEvent.SCOPE_CREATED, wsScope);
                 addWebSocketScope(wsScope);
-                log.debug("Use the IWebSocketScopeListener interface to be notified of new scopes");
+                //log.debug("Use the IWebSocketScopeListener interface to be notified of new scopes");
             } else {
                 path = "default";
             }
@@ -348,6 +351,10 @@ public class WebSocketScopeManager {
         this.appScope = appScope;
         // add the name to the collection (no '/' prefix)
         activeRooms.add(appScope.getName());
+    }
+
+    public void setCopyListeners(boolean copy) {
+        this.copyListeners = copy;
     }
 
     @Override

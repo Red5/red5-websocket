@@ -112,13 +112,15 @@ public class WebSocketPlugin extends Red5Plugin {
             log.trace("Path parts: {}", Arrays.toString(parts));
         }
         if (parts.length > 0) {
+            // skip default in a path if it exists in slot #1
+            String name = !"default".equals(parts[1]) ? parts[1] : parts[2];
             for (Entry<IScope, WebSocketScopeManager> entry : managerMap.entrySet()) {
                 IScope appScope = entry.getKey();
-                if (appScope.getName().equals(parts[1])) {
-                    log.debug("Application scope name matches path: {}", parts[1]);
+                if (appScope.getName().equals(name)) {
+                    log.debug("Application scope name matches path: {}", name);
                     return entry.getValue();
                 } else if (log.isTraceEnabled()) {
-                    log.trace("Application scope name: {} didnt match path: {}", appScope.getName(), parts[1]);
+                    log.trace("Application scope name: {} didnt match path: {}", appScope.getName(), name);
                 }
             }
         }
