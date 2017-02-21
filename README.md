@@ -98,15 +98,15 @@ Adding WebSocket to an Application
 To enable websocket support in your application, add this to your appStart() method:
 
 ```
-  WebSocketScopeManager manager = ((WebSocketPlugin) PluginRegistry.getPlugin("WebSocketPlugin")).getManager();
-  manager.addApplication(scope);
+  WebSocketScopeManager manager = ((WebSocketPlugin) PluginRegistry.getPlugin("WebSocketPlugin")).getManager(scope);
+  manager.setApplication(this);
 ```
 
 For clean-up add this to appStop():
 
 ```
-  WebSocketScopeManager manager = ((WebSocketPlugin) PluginRegistry.getPlugin("WebSocketPlugin")).getManager();
-  manager.removeApplication(scope);
+  WebSocketScopeManager manager = ((WebSocketPlugin) PluginRegistry.getPlugin("WebSocketPlugin")).getManager(scope);
+  manager.stop();
 ```
 
 Test Page
