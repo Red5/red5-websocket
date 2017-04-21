@@ -291,7 +291,11 @@ public class WebSocketDecoder extends CumulativeProtocolDecoder {
                     });
                     throw new WebSocketException("Handshake failed, missing plugin");
                 }
-            } else if (request[i].contains(Constants.WS_HEADER_KEY)) {
+            }else if (request[i].contains(Constants.WS_HEADER_REAL_IP)) {
+                map.put(Constants.WS_HEADER_REAL_IP, extractHeaderValue(request[i]));
+            }else if (request[i].contains(Constants.WS_HEADER_FORWARDED)) {
+                map.put(Constants.WS_HEADER_FORWARDED, extractHeaderValue(request[i]));
+            }else if (request[i].contains(Constants.WS_HEADER_KEY)) {
                 map.put(Constants.WS_HEADER_KEY, extractHeaderValue(request[i]));
             } else if (request[i].contains(Constants.WS_HEADER_VERSION)) {
                 map.put(Constants.WS_HEADER_VERSION, extractHeaderValue(request[i]));
