@@ -46,6 +46,12 @@ public class Constants {
     public final static String HTTP_HEADER_ORIGIN = "Origin";
 
     public final static String HTTP_HEADER_USERAGENT = "User-Agent";
+    
+    public final static String WS_HEADER_FORWARDED = "X-Forwarded-For";
+    
+    public final static String WS_HEADER_REAL_IP = "X-Real-IP";
+    
+    public final static String WS_HEADER_GENERIC_PREFIX = "X-";
 
     public static final String URI_QS_PARAMETERS = "querystring-parameters";
 

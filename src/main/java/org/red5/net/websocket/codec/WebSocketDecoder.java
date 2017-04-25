@@ -291,7 +291,7 @@ public class WebSocketDecoder extends CumulativeProtocolDecoder {
                     });
                     throw new WebSocketException("Handshake failed, missing plugin");
                 }
-            } else if (request[i].contains(Constants.WS_HEADER_KEY)) {
+            }else if (request[i].contains(Constants.WS_HEADER_KEY)) {
                 map.put(Constants.WS_HEADER_KEY, extractHeaderValue(request[i]));
             } else if (request[i].contains(Constants.WS_HEADER_VERSION)) {
                 map.put(Constants.WS_HEADER_VERSION, extractHeaderValue(request[i]));
@@ -307,10 +307,26 @@ public class WebSocketDecoder extends CumulativeProtocolDecoder {
                 conn.setOrigin(extractHeaderValue(request[i]));
             } else if (request[i].contains(Constants.HTTP_HEADER_USERAGENT)) {
                 map.put(Constants.HTTP_HEADER_USERAGENT, extractHeaderValue(request[i]));
+            }else if (request[i].startsWith(Constants.WS_HEADER_GENERIC_PREFIX)) {
+            	map.put(getHeaderName(request[i]), extractHeaderValue(request[i]));
             }
         }
         return map;
     }
+    
+    
+    
+    /**
+     * Returns the trimmed header name.
+     * 
+     * @param requestHeader
+     * @return value
+     */
+    private String getHeaderName(String requestHeader){
+    	return requestHeader.substring(0, requestHeader.indexOf(':')).trim();
+    }
+    
+    
 
     /**
      * Returns the trimmed header value.
