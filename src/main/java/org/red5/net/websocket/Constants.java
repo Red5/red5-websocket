@@ -33,6 +33,8 @@ public class Constants {
 
     public final static String SESSION = "session";
 
+    public static final Object WS_HANDSHAKE = "ws.handshake";
+
     public final static String WS_HEADER_KEY = "Sec-WebSocket-Key";
 
     public final static String WS_HEADER_VERSION = "Sec-WebSocket-Version";
@@ -58,5 +60,8 @@ public class Constants {
     // magic string for websockets
     public static final String WEBSOCKET_MAGIC_STRING = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
 
-    public static final byte[] CRLF = { 0x0D, 0x0A };
+    public static final byte[] CRLF = { 0x0d, 0x0a };
+
+    public static final byte[] END_OF_REQ = { 0x0d, 0x0a, 0x0d, 0x0a };
+
 }

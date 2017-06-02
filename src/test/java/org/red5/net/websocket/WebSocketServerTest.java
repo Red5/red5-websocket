@@ -37,11 +37,15 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
 import javax.websocket.ClientEndpoint;
+import javax.websocket.ClientEndpointConfig;
 import javax.websocket.ContainerProvider;
+import javax.websocket.Endpoint;
+import javax.websocket.EndpointConfig;
 import javax.websocket.OnMessage;
 import javax.websocket.Session;
 import javax.websocket.WebSocketContainer;
 
+import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.mina.core.buffer.IoBuffer;
 import org.apache.mina.core.filterchain.IoFilter.NextFilter;
 import org.apache.mina.core.filterchain.IoFilterChain;
@@ -374,11 +378,14 @@ public class WebSocketServerTest {
         }
         // create the client
         final TyrusWSClient client = new TyrusWSClient();
-        new Thread(new Runnable() {
+        //final TyrusWSClient client = new TyrusWSClient(8192 * 10);
+        Thread t = new Thread(new Runnable() {
             public void run() {
                 client.start();
             }
-        }).start();;
+        }, "tyrus");
+        t.start();
+        t.join(5000);
         // send a message
         //client.sendMessage("This is a test");
         // terminate client
@@ -397,6 +404,7 @@ public class WebSocketServerTest {
 
         public Object call() throws Exception {
             WSClient client = new WSClient("localhost", 8888);
+            //WSClient client = new WSClient("localhost", 8888, 8192 * 10);
             client.connect();
             if (client.isConnected()) {
                 client.send("This is a test: " + System.currentTimeMillis());
@@ -461,7 +469,22 @@ public class WebSocketServerTest {
 
         private IoSession session;
 
+        private String cookie = null;
+
         public WSClient(String host, int port) {
+            this.host = host;
+            this.port = port;
+            connector = new NioSocketConnector();
+            connector.getFilterChain().addLast("codec", new ProtocolCodecFilter(new WebSocketCodecFactory()));
+            connector.setHandler(this);
+            SocketSessionConfig sessionConf = connector.getSessionConfig();
+            sessionConf.setReuseAddress(true);
+            connector.setConnectTimeout(3);
+        }
+
+        public WSClient(String host, int port, int cookieLength) {
+            this.cookie = RandomStringUtils.randomAscii(cookieLength);
+            log.debug("Cookie length: {}", cookie.length());
             this.host = host;
             this.port = port;
             connector = new NioSocketConnector();
@@ -494,7 +517,14 @@ public class WebSocketServerTest {
                 buf.put(Constants.CRLF);
                 buf.put("Sec-WebSocket-Version: 13".getBytes());
                 buf.put(Constants.CRLF);
+                if (cookie != null) {
+                    buf.put(String.format("Cookie: monster=%s", cookie).getBytes());
+                    buf.put(Constants.CRLF);
+                }
                 buf.put(Constants.CRLF);
+                if (log.isDebugEnabled()) {
+                    log.debug("Handshake request length: {}", buf.limit());
+                }
                 HandshakeRequest request = new HandshakeRequest(buf);
                 session.write(request);
                 // create connection 
@@ -538,7 +568,7 @@ public class WebSocketServerTest {
     }
 
     @ClientEndpoint
-    public class TyrusWSClient {
+    public class TyrusWSClient extends Endpoint {
 
         private WebSocketContainer container = null;
 
@@ -546,9 +576,24 @@ public class WebSocketServerTest {
 
         private Object waitLock = new Object();
 
+        private String cookie = null;
+
+        public TyrusWSClient() {
+        }
+
+        public TyrusWSClient(int cookieLength) {
+            this.cookie = RandomStringUtils.randomAscii(cookieLength);
+            log.debug("Cookie length: {}", cookie.length());
+        }
+
+        @Override
+        public void onOpen(Session session, EndpointConfig config) {
+            log.debug("Opened: {} config: {}", session, config);
+        }
+
         @OnMessage
         public void onMessage(String message) {
-            System.out.println("Received msg: " + message);
+            log.debug("Received msg: {}", message);
         }
 
         public void sendMessage(String message) {
@@ -574,14 +619,30 @@ public class WebSocketServerTest {
             }
         }
 
+        // https://tyrus-project.github.io/
         public void start() {
             //ClientManager mgr = ClientManager.createClient(); //org.glassfish.tyrus.client.ClientManager
             //mgr.connectToServer(TyrusWSClient.class, "ws://localhost:8888/app?id=cafebeef0123");
             try {
                 // Tyrus is plugged via ServiceLoader API. See notes above
                 container = ContainerProvider.getWebSocketContainer();
-                //ratesrv is the  path given in the ServerEndPoint annotation on server implementation
-                session = container.connectToServer(TyrusWSClient.class, URI.create("ws://localhost:8888/default?id=cafebeef0123"));
+                if (cookie != null) {
+                    ClientEndpointConfig cec = ClientEndpointConfig.Builder.create().configurator(new ClientEndpointConfig.Configurator() {
+                        @Override
+                        public void beforeRequest(Map<String, List<String>> headers) {
+                            super.beforeRequest(headers);
+                            List<String> cookieList = headers.get("Cookie");
+                            if (null == cookieList) {
+                                cookieList = new ArrayList<>();
+                            }
+                            cookieList.add(String.format("monster=\"%s\"", cookie)); // set your cookie value here
+                            headers.put("Cookie", cookieList);
+                        }
+                    }).build();
+                    session = container.connectToServer(TyrusWSClient.class, cec, URI.create("ws://localhost:8888/default?id=cafebeef0123"));
+                } else {
+                    session = container.connectToServer(TyrusWSClient.class, URI.create("ws://localhost:8888/default?id=cafebeef0123"));
+                }
                 wait4TerminateSignal();
             } catch (Exception e) {
                 e.printStackTrace();
@@ -594,7 +655,9 @@ public class WebSocketServerTest {
                     }
                 }
             }
+            log.debug("exit");
         }
+
     }
 
     private class DummyDecoder extends WebSocketDecoder {

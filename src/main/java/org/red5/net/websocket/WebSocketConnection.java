@@ -132,7 +132,9 @@ public class WebSocketConnection {
      * @param buf
      */
     public void send(byte[] buf) {
-        log.trace("send binary: {}", Arrays.toString(buf));
+        if (log.isTraceEnabled()) {
+            log.trace("send binary: {}", Arrays.toString(buf));
+        }
         Packet packet = Packet.build(buf);
         session.write(packet);
     }
@@ -143,7 +145,9 @@ public class WebSocketConnection {
      * @param buf
      */
     public void sendPong(byte[] buf) {
-        log.trace("send pong: {}", buf);
+        if (log.isTraceEnabled()) {
+            log.trace("send pong: {}", buf);
+        }
         Packet packet = Packet.build(buf, MessageType.PONG);
         session.write(packet);
     }

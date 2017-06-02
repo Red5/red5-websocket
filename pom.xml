@@ -9,7 +9,7 @@
     <artifactId>websocket</artifactId>
     <packaging>jar</packaging>
     <name>websocket</name>
-    <version>1.10</version>
+    <version>1.11</version>
     <description>Red5 WebSocket plugin</description>
     <url>https://github.com/Red5/red5-websocket</url>
     <organization>
@@ -224,7 +224,7 @@
         <dependency>
             <groupId>org.glassfish.tyrus.bundles</groupId>
             <artifactId>tyrus-standalone-client-jdk</artifactId>
-            <version>1.12</version>
+            <version>1.13.1</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
