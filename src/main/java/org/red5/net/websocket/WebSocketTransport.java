@@ -89,7 +89,6 @@ public class WebSocketTransport implements InitializingBean, DisposableBean {
         sessionConf.setReadBufferSize(receiveBufferSize);
         // close sessions when the acceptor is stopped
         acceptor.setCloseOnDeactivation(true);
-        acceptor.setHandler(ioHandler);
         // requested maximum length of the queue of incoming connections
         acceptor.setBacklog(64);
         acceptor.setReuseAddress(true);
@@ -98,6 +97,7 @@ public class WebSocketTransport implements InitializingBean, DisposableBean {
             ioHandler = new WebSocketHandler();
         }
         log.trace("I/O handler: {}", ioHandler);
+        acceptor.setHandler(ioHandler);
         DefaultIoFilterChainBuilder chain = acceptor.getFilterChain();
         // if handling wss init the config
         SslFilter sslFilter = null;
