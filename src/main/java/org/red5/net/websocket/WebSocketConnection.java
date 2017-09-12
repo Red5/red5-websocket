@@ -156,7 +156,7 @@ public class WebSocketConnection {
      * close Connection
      */
     public void close() {
-        CloseFuture future = session.closeNow();
+        CloseFuture future = session.closeOnFlush();
         future.addListener(new IoFutureListener<CloseFuture>() {
             public void operationComplete(CloseFuture future) {
                 if (future.isClosed()) {
