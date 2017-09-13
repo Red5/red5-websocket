@@ -45,6 +45,9 @@
             <email>mondain@gmail.com</email>
         </developer>
     </developers>
+    <properties>
+        <bc.version>1.58</bc.version>
+    </properties>
     <build>
         <defaultGoal>install</defaultGoal>
         <plugins>
@@ -87,6 +90,11 @@
         <dependency>
             <groupId>org.bouncycastle</groupId>
             <artifactId>bcprov-jdk15on</artifactId>
+            <version>${bc.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.bouncycastle</groupId>
+            <artifactId>bctls-jdk15on</artifactId>
             <version>${bc.version}</version>
         </dependency>
         <dependency>
