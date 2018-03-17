@@ -9,7 +9,7 @@
     <artifactId>websocket</artifactId>
     <packaging>jar</packaging>
     <name>websocket</name>
-    <version>1.13</version>
+    <version>1.14</version>
     <description>Red5 WebSocket plugin</description>
     <url>https://github.com/Red5/red5-websocket</url>
     <organization>
@@ -45,9 +45,11 @@
             <email>mondain@gmail.com</email>
         </developer>
     </developers>
+    <!-- 
     <properties>
         <bc.version>1.58</bc.version>
     </properties>
+    -->
     <build>
         <defaultGoal>install</defaultGoal>
         <plugins>
