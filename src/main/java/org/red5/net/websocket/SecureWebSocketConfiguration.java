@@ -22,13 +22,11 @@ import java.io.File;
 import java.io.NotActiveException;
 import java.security.KeyStore;
 import java.security.Provider;
-import java.security.Provider.Service;
 import java.security.Security;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
-import java.util.Set;
 
 import javax.net.ssl.SNIHostName;
 import javax.net.ssl.SNIMatcher;
@@ -40,7 +38,6 @@ import org.apache.mina.filter.ssl.KeyStoreFactory;
 import org.apache.mina.filter.ssl.SslContextFactory;
 import org.apache.mina.filter.ssl.SslFilter;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
-import org.bouncycastle.jsse.provider.BouncyCastleJsseProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -85,15 +82,16 @@ public class SecureWebSocketConfiguration {
 
     static {
         // add bouncycastle security provider
-        int insertedAt = Security.insertProviderAt(new BouncyCastleProvider(), 1);
-        log.debug("BC provider inserted at position: {}", insertedAt);
+        //int insertedAt = Security.insertProviderAt(new BouncyCastleProvider(), 1);
+        //log.debug("BC provider inserted at position: {}", insertedAt);
+        // org.bouncycastle.jsse.provider.BouncyCastleJsseProvider
         //insertedAt = Security.insertProviderAt(new BouncyCastleJsseProvider(), 2);
         //log.debug("BC JSSE provider inserted at position: {}", insertedAt);
-        //Security.addProvider(new BouncyCastleProvider());
-        if (log.isTraceEnabled()) {
+        Security.addProvider(new BouncyCastleProvider());
+        if (log.isDebugEnabled()) {
             Provider[] providers = Security.getProviders();
             for (Provider provider : providers) {
-                log.trace("Provider: {} = {}", provider.getName(), provider.getInfo());
+                log.debug("Provider: {} = {}", provider.getName(), provider.getInfo());
             }
         }
     }
@@ -133,6 +131,7 @@ public class SecureWebSocketConfiguration {
             if (keyStore.exists() && trustStore.exists()) {
                 // ssl context factory
                 final SslContextFactory sslContextFactory = new SslContextFactory();
+                /* Skip all the provider overrides until we get the service startup bug figured out
                 // enforce TLSv1.2 otherwise we may get a lesser protocol
                 sslContextFactory.setProtocol("TLSv1.2");
                 // get provider
@@ -154,6 +153,7 @@ public class SecureWebSocketConfiguration {
                     // use whatever default is available
                     log.debug("BouncyCastleJsseProvider not found");
                 }
+                */
                 // keystore
                 final KeyStoreFactory keyStoreFactory = new KeyStoreFactory();
                 keyStoreFactory.setDataFile(keyStore);
