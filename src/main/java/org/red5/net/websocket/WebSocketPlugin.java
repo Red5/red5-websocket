@@ -32,11 +32,8 @@ import org.slf4j.LoggerFactory;
 
 /**
  * WebSocketPlugin
- * 
- * <pre>
- * This program will be called by red5 PluginLauncher
- * and hold the application Context or Application Adapter
- * </pre>
+ * <br>
+ * This program will be called by red5 PluginLauncher and hold the application Context or Application Adapter
  * 
  * @author Toda Takahiko
  * @author Paul Gregoire
@@ -152,7 +149,7 @@ public class WebSocketPlugin extends Red5Plugin {
     public void setApplication(MultiThreadedApplicationAdapter application) {
         log.info("WebSocketPlugin application: {}", application);
         // get the app scope
-        IScope appScope = application.getScope();
+        final IScope appScope = application.getScope();
         // put if not already there
         managerMap.putIfAbsent(appScope, new WebSocketScopeManager());
         // add the app scope to the manager

@@ -18,6 +18,10 @@
 
 package org.red5.net.websocket;
 
+import java.io.UnsupportedEncodingException;
+
+import org.apache.mina.core.buffer.IoBuffer;
+
 /**
  * Convenience class for holding constants.
  * 
@@ -57,6 +61,9 @@ public class Constants {
 
     public static final String URI_QS_PARAMETERS = "querystring-parameters";
 
+    // used to determine if close message was written
+    public static final String STATUS_CLOSE_WRITTEN = "close.written";
+    
     // magic string for websockets
     public static final String WEBSOCKET_MAGIC_STRING = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
 
@@ -64,4 +71,23 @@ public class Constants {
 
     public static final byte[] END_OF_REQ = { 0x0d, 0x0a, 0x0d, 0x0a };
 
+    // simple text content to go with our close message / packet
+    public static final byte[] CLOSE_MESSAGE_BYTES;
+    
+    static {
+        IoBuffer buf = IoBuffer.allocate(16);
+        buf.setAutoExpand(true);
+        // 2 byte unsigned code per rfc6455 5.5.1
+        buf.putUnsigned((short) 1000); // normal close
+        // this should never fail, but never say never...
+        try {
+            buf.put("Normal close".getBytes("UTF8"));
+        } catch (UnsupportedEncodingException e) {
+            e.printStackTrace();
+        }
+        buf.flip();
+        CLOSE_MESSAGE_BYTES = new byte[buf.remaining()];
+        buf.get(CLOSE_MESSAGE_BYTES);
+    }
+    
 }

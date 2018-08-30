@@ -20,6 +20,7 @@ package org.red5.net.websocket;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -40,11 +41,8 @@ import org.springframework.beans.factory.InitializingBean;
 
 /**
  * WebSocketTransport
- * 
- * <pre>
- * this class will be instanced in red5.xml(or other xml files).
- * will make port listen...
- * </pre>
+ * <br>
+ * this class will be instanced in red5.xml(or other xml files). * will make port listen...
  * 
  * @author Toda Takahiko
  * @author Paul Gregoire
@@ -71,6 +69,15 @@ public class WebSocketTransport implements InitializingBean, DisposableBean {
     private SocketAcceptor acceptor;
 
     private SecureWebSocketConfiguration secureConfig;
+
+    // Same origin policy enable/disabled
+    private static boolean sameOriginPolicy;
+
+    // Cross-origin policy enable/disabled
+    private static boolean crossOriginPolicy;
+
+    // Cross-origin names
+    private static String[] allowedOrigins = new String[] { "*" };
 
     /**
      * Creates the i/o handler and nio acceptor; ports and addresses are bound.
@@ -215,6 +222,31 @@ public class WebSocketTransport implements InitializingBean, DisposableBean {
 
     public void setSecureConfig(SecureWebSocketConfiguration secureConfig) {
         this.secureConfig = secureConfig;
+    }
+
+    public static boolean isSameOriginPolicy() {
+        return sameOriginPolicy;
+    }
+
+    public void setSameOriginPolicy(boolean sameOriginPolicy) {
+        WebSocketTransport.sameOriginPolicy = sameOriginPolicy;
+    }
+
+    public static boolean isCrossOriginPolicy() {
+        return crossOriginPolicy;
+    }
+
+    public void setCrossOriginPolicy(boolean crossOriginPolicy) {
+        WebSocketTransport.crossOriginPolicy = crossOriginPolicy;
+    }
+
+    public static String[] getAllowedOrigins() {
+        return allowedOrigins;
+    }
+
+    public void setAllowedOrigins(String[] allowedOrigins) {
+        WebSocketTransport.allowedOrigins = allowedOrigins;
+        log.info("allowedOrigins: {}", Arrays.toString(WebSocketTransport.allowedOrigins));
     }
 
 }

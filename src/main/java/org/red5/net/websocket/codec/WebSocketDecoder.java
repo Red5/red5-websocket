@@ -26,9 +26,6 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.mina.core.buffer.IoBuffer;
-import org.apache.mina.core.future.IoFuture;
-import org.apache.mina.core.future.IoFutureListener;
-import org.apache.mina.core.future.WriteFuture;
 import org.apache.mina.core.session.IoSession;
 import org.apache.mina.filter.codec.CumulativeProtocolDecoder;
 import org.apache.mina.filter.codec.ProtocolDecoderOutput;
@@ -38,6 +35,7 @@ import org.red5.net.websocket.WebSocketConnection;
 import org.red5.net.websocket.WebSocketException;
 import org.red5.net.websocket.WebSocketPlugin;
 import org.red5.net.websocket.WebSocketScopeManager;
+import org.red5.net.websocket.WebSocketTransport;
 import org.red5.net.websocket.listener.IWebSocketDataListener;
 import org.red5.net.websocket.model.ConnectionType;
 import org.red5.net.websocket.model.HandshakeResponse;
@@ -180,6 +178,8 @@ public class WebSocketDecoder extends CumulativeProtocolDecoder {
         }
         // create the connection obj
         WebSocketConnection conn = new WebSocketConnection(session);
+        // store connection in the current session
+        session.setAttribute(Constants.CONNECTION, conn);
         // mark as secure if using ssl
         if (session.getFilterChain().contains("sslFilter")) {
             conn.setSecure(true);
@@ -208,6 +208,8 @@ public class WebSocketDecoder extends CumulativeProtocolDecoder {
                     WebSocketPlugin plugin = (WebSocketPlugin) PluginRegistry.getPlugin("WebSocketPlugin");
                     manager = plugin.getManager(path);
                 }
+                // store manager in the current session
+                session.setAttribute(Constants.MANAGER, manager);
                 // TODO add handling for extensions
 
                 // TODO expand handling for protocols requested by the client, instead of just echoing back
@@ -228,10 +230,6 @@ public class WebSocketDecoder extends CumulativeProtocolDecoder {
                     }
                     log.debug("Scope listener does{} support the '{}' protocol", (protocolSupported ? "" : "n't"), protocol);
                 }
-                // store manager in the current session
-                session.setAttribute(Constants.MANAGER, manager);
-                // store connection in the current session
-                session.setAttribute(Constants.CONNECTION, conn);
                 // handshake is finished
                 conn.setConnected();
                 // add connection to the manager
@@ -266,6 +264,8 @@ public class WebSocketDecoder extends CumulativeProtocolDecoder {
         if (log.isTraceEnabled()) {
             log.trace("Request: {}", Arrays.toString(request));
         }
+        // host and origin for validation purposes
+        String host = null, origin = null;
         Map<String, Object> map = new HashMap<>();
         for (int i = 0; i < request.length; i++) {
             log.trace("Request {}: {}", i, request[i]);
@@ -302,28 +302,12 @@ public class WebSocketDecoder extends CumulativeProtocolDecoder {
                         log.trace("Path enabled: {}", path);
                     } else {
                         // invalid scope or its application is not enabled, send disconnect message
-                        HandshakeResponse errResponse = build400Response(conn);
-                        WriteFuture future = conn.getSession().write(errResponse);
-                        future.addListener(new IoFutureListener<IoFuture>() {
-                            @Override
-                            public void operationComplete(IoFuture future) {
-                                // close connection
-                                future.getSession().closeOnFlush();
-                            }
-                        });
+                        conn.close(1002, build400Response(conn));
                         throw new WebSocketException("Handshake failed, path not enabled");
                     }
                 } else {
                     log.warn("Plugin lookup failed");
-                    HandshakeResponse errResponse = build400Response(conn);
-                    WriteFuture future = conn.getSession().write(errResponse);
-                    future.addListener(new IoFutureListener<IoFuture>() {
-                        @Override
-                        public void operationComplete(IoFuture future) {
-                            // close connection
-                            future.getSession().closeOnFlush();
-                        }
-                    });
+                    conn.close(1002, build400Response(conn));
                     throw new WebSocketException("Handshake failed, missing plugin");
                 }
             } else if (request[i].contains(Constants.WS_HEADER_KEY)) {
@@ -336,15 +320,46 @@ public class WebSocketDecoder extends CumulativeProtocolDecoder {
                 map.put(Constants.WS_HEADER_PROTOCOL, extractHeaderValue(request[i]));
             } else if (request[i].contains(Constants.HTTP_HEADER_HOST)) {
                 // get the host data
-                conn.setHost(extractHeaderValue(request[i]));
+                host = extractHeaderValue(request[i]);
+                conn.setHost(host);
             } else if (request[i].contains(Constants.HTTP_HEADER_ORIGIN)) {
                 // get the origin data
-                conn.setOrigin(extractHeaderValue(request[i]));
+                origin = extractHeaderValue(request[i]);
+                conn.setOrigin(origin);
             } else if (request[i].contains(Constants.HTTP_HEADER_USERAGENT)) {
                 map.put(Constants.HTTP_HEADER_USERAGENT, extractHeaderValue(request[i]));
             } else if (request[i].startsWith(Constants.WS_HEADER_GENERIC_PREFIX)) {
                 map.put(getHeaderName(request[i]), extractHeaderValue(request[i]));
             }
+        }
+        // policy checking
+        boolean validOrigin = true;
+        if (conn.isSameOriginPolicy()) {
+            // if SOP / origin validation is enabled, verify the origin
+            String trimmedHost = host;
+            // strip protocol if its there
+            if (host.startsWith("http")) {
+                trimmedHost = host.substring(host.indexOf("//") + 1);
+            }
+            // chop off port etc..
+            int colonIndex = trimmedHost.indexOf(':');
+            if (colonIndex > 0) {
+                trimmedHost = trimmedHost.substring(0, colonIndex);
+            }
+            log.debug("Trimmed host: {}", trimmedHost);
+            validOrigin = origin.contains(trimmedHost);
+            log.debug("Same Origin? {}", validOrigin);
+        }
+        if (conn.isCrossOriginPolicy()) {
+            // if CORS is enabled
+            validOrigin = conn.isValidOrigin(origin);
+            log.debug("Origin {} valid? {}", origin, validOrigin);
+        }
+        if (!validOrigin) {
+            conn.close(1008, build403Response(conn));
+            throw new WebSocketException(String.format("Policy failure - SOP enabled: %b CORS enabled: %b", WebSocketTransport.isSameOriginPolicy(), WebSocketTransport.isCrossOriginPolicy()));
+        } else {
+            log.debug("Origin is valid");
         }
         return map;
     }
@@ -434,6 +449,27 @@ public class WebSocketDecoder extends CumulativeProtocolDecoder {
         IoBuffer buf = IoBuffer.allocate(32);
         buf.setAutoExpand(true);
         buf.put("HTTP/1.1 400 Bad Request".getBytes());
+        buf.put(Constants.CRLF);
+        buf.put("Sec-WebSocket-Version-Server: 13".getBytes());
+        buf.put(Constants.CRLF);
+        buf.put(Constants.CRLF);
+        if (log.isTraceEnabled()) {
+            log.trace("Handshake error response size: {}", buf.limit());
+        }
+        return new HandshakeResponse(buf);
+    }
+
+    /**
+     * Build an HTTP 403 "Forbidden" response.
+     * 
+     * @return response
+     * @throws WebSocketException
+     */
+    private HandshakeResponse build403Response(WebSocketConnection conn) throws WebSocketException {
+        // make up reply data...
+        IoBuffer buf = IoBuffer.allocate(32);
+        buf.setAutoExpand(true);
+        buf.put("HTTP/1.1 403 Forbidden".getBytes());
         buf.put(Constants.CRLF);
         buf.put("Sec-WebSocket-Version-Server: 13".getBytes());
         buf.put(Constants.CRLF);

@@ -77,7 +77,16 @@ public class Packet {
      * @return packet
      */
     public static Packet build(IoBuffer buffer) {
-        return new Packet(buffer.array());
+        if (buffer.hasArray()) {
+            return new Packet(buffer.array());
+        }
+        byte[] buf = new byte[buffer.remaining()];
+        buffer.get(buf);
+        return new Packet(buf);
+    }
+
+    public static Packet build(MessageType type) {
+        return new Packet(new byte[0], type);
     }
 
     public static Packet build(byte[] bytes, MessageType type) {
