@@ -109,6 +109,33 @@ For clean-up add this to appStop():
   manager.stop();
 ```
 
+Security Features
+-------------------
+Since WebSockets don't implement Same Origin Policy (SOP) nor Cross-Origin Resource Sharing (CORS), we've implemented a means to restrict access via configuration using SOP / CORS logic. To configure the security features, edit your `conf/jee-container.xml` file and locate the bean displayed below:
+```xml
+    <bean id="webSocketTransport" class="org.red5.net.websocket.WebSocketTransport">
+        <property name="addresses">
+            <list>
+                <value>${ws.host}:${ws.port}</value>
+            </list>
+        </property>
+        <property name="sameOriginPolicy" value="false" />
+        <property name="crossOriginPolicy" value="true" />
+        <property name="allowedOrigins">
+            <array>
+                <value>localhost</value>
+                <value>red5.org</value>
+            </array>
+        </property>
+    </bean>
+```
+Properties:
+ * [sameOriginPolicy](https://www.w3.org/Security/wiki/Same_Origin_Policy) - Enables or disables SOP. The logic differs from standard web SOP by *NOT* enforcing protocol and port.
+ * [crossOriginPolicy](https://www.w3.org/Security/wiki/CORS) - Enables or disables CORS. This option pairs with the `allowedOrigins` array.
+ * allowedOrigins - The list or host names or fqdn which are to be permitted access. The default if none are specified is `*` which equates to any or all.
+ 
+
+
 Test Page
 -------------------
 
