@@ -26,6 +26,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.mina.core.buffer.IoBuffer;
 import org.apache.mina.core.future.CloseFuture;
 import org.apache.mina.core.future.IoFutureListener;
@@ -139,14 +140,17 @@ public class WebSocketConnection {
     /**
      * Sends text to the client.
      * 
-     * @param data
-     *            string data
+     * @param data string data
      * @throws UnsupportedEncodingException
      */
     public void send(String data) throws UnsupportedEncodingException {
         log.trace("send message: {}", data);
-        Packet packet = Packet.build(data.getBytes("UTF8"), MessageType.TEXT);
-        session.write(packet);
+        if (StringUtils.isNotBlank(data)) {
+            Packet packet = Packet.build(data.getBytes("UTF8"), MessageType.TEXT);
+            session.write(packet);
+        } else {
+            throw new UnsupportedEncodingException("Cannot send a null string");
+        }
     }
 
     /**

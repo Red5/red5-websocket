@@ -55,11 +55,6 @@ public class WebSocketTransport implements InitializingBean, DisposableBean {
 
     private int receiveBufferSize = 2048;
 
-    @SuppressWarnings("unused")
-    private int connectionThreads = 8;
-
-    private int ioThreads = 16;
-
     private int port = 80;
 
     private Set<String> addresses = new HashSet<>();
@@ -87,7 +82,7 @@ public class WebSocketTransport implements InitializingBean, DisposableBean {
     @Override
     public void afterPropertiesSet() throws Exception {
         // create the nio acceptor
-        acceptor = new NioSocketAcceptor(ioThreads);
+        acceptor = new NioSocketAcceptor();
         // configure the acceptor
         SocketSessionConfig sessionConf = acceptor.getSessionConfig();
         sessionConf.setReuseAddress(true);
@@ -197,19 +192,17 @@ public class WebSocketTransport implements InitializingBean, DisposableBean {
     }
 
     /**
-     * @param connectionThreads
-     *            the connectionThreads to set
+     * @param connectionThreads the connectionThreads to set
      */
+    @Deprecated
     public void setConnectionThreads(int connectionThreads) {
-        this.connectionThreads = connectionThreads;
     }
 
     /**
-     * @param ioThreads
-     *            the ioThreads to set
+     * @param ioThreads the ioThreads to set
      */
+    @Deprecated
     public void setIoThreads(int ioThreads) {
-        this.ioThreads = ioThreads;
     }
 
     public boolean isSecure() {
