@@ -94,7 +94,7 @@ public class WSMessage {
      */
     public void addPayload(IoBuffer additionalPayload) {
         if (payload == null) {
-            payload = IoBuffer.allocate(additionalPayload.limit());
+            payload = IoBuffer.allocate(additionalPayload.remaining());
             payload.setAutoExpand(true);
         }
         this.payload.put(additionalPayload);

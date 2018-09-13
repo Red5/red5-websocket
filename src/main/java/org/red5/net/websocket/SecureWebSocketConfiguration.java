@@ -195,6 +195,7 @@ public class SecureWebSocketConfiguration {
                         log.debug("No ciphers");
                     }
                     // http://docs.oracle.com/javase/8/docs/technotes/guides/security/jsse/JSSERefGuide.html#SNIExamples
+                    // https://docs.oracle.com/javase/8/docs/technotes/guides/security/jsse/JSSERefGuide.html#SNIExtension
                     log.debug("SNI extension enabled: {}", sniEnabled);
                     List<SNIServerName> serverNames = params.getServerNames();
                     if (serverNames != null) {

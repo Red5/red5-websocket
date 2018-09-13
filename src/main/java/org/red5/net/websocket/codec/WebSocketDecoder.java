@@ -138,9 +138,9 @@ public class WebSocketDecoder extends CumulativeProtocolDecoder {
             }
         } else {
             // session is known to be from a native socket. So simply wrap and pass through
-            resultBuffer = IoBuffer.wrap(in.array(), 0, in.limit());
-            in.position(in.limit());
-            out.write(resultBuffer);
+            byte[] arr = new byte[in.remaining()];
+            in.get(arr);
+            out.write(IoBuffer.wrap(arr));
         }
         return true;
     }
@@ -167,7 +167,7 @@ public class WebSocketDecoder extends CumulativeProtocolDecoder {
             // size for incoming bytes
             data = new byte[in.remaining()];
             // get incoming bytes
-            in.get(data, 0, data.length);
+            in.get(data);
         }
         // ensure the incoming data is complete (ends with crlfcrlf)
         byte[] tail = Arrays.copyOfRange(data, data.length - 4, data.length);

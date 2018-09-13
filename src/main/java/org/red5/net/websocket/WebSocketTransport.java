@@ -27,6 +27,10 @@ import java.util.Set;
 
 import org.apache.mina.core.filterchain.DefaultIoFilterChainBuilder;
 import org.apache.mina.core.service.IoHandlerAdapter;
+import org.apache.mina.core.service.IoService;
+import org.apache.mina.core.service.IoServiceListener;
+import org.apache.mina.core.session.IdleStatus;
+import org.apache.mina.core.session.IoSession;
 import org.apache.mina.filter.codec.ProtocolCodecFilter;
 import org.apache.mina.filter.logging.LoggingFilter;
 import org.apache.mina.filter.ssl.SslFilter;
@@ -59,6 +63,10 @@ public class WebSocketTransport implements InitializingBean, DisposableBean {
 
     private Set<String> addresses = new HashSet<>();
 
+    private int writeTimeout = 30;
+    
+    private int idleTimeout = 60;
+    
     private IoHandlerAdapter ioHandler;
 
     private SocketAcceptor acceptor;
@@ -82,13 +90,53 @@ public class WebSocketTransport implements InitializingBean, DisposableBean {
     @Override
     public void afterPropertiesSet() throws Exception {
         // create the nio acceptor
-        acceptor = new NioSocketAcceptor();
+        acceptor = new NioSocketAcceptor(Runtime.getRuntime().availableProcessors() * 4);
+        acceptor.addListener(new IoServiceListener() {
+
+            @Override
+            public void serviceActivated(IoService service) throws Exception {
+                //log.debug("serviceActivated: {}", service);
+            }
+
+            @Override
+            public void serviceIdle(IoService service, IdleStatus idleStatus) throws Exception {
+                //logger.debug("serviceIdle: {} status: {}", service, idleStatus);
+            }
+
+            @Override
+            public void serviceDeactivated(IoService service) throws Exception {
+                //log.debug("serviceDeactivated: {}", service);
+            }
+
+            @Override
+            public void sessionCreated(IoSession session) throws Exception {
+                log.info("sessionCreated: {}", session);
+                //log.trace("Acceptor sessions: {}", acceptor.getManagedSessions());
+            }
+
+            @Override
+            public void sessionClosed(IoSession session) throws Exception {
+                log.info("sessionClosed: {}", session);
+            }
+
+            @Override
+            public void sessionDestroyed(IoSession session) throws Exception {
+                //log.debug("sessionDestroyed: {}", session);
+            }
+
+        });        
         // configure the acceptor
         SocketSessionConfig sessionConf = acceptor.getSessionConfig();
         sessionConf.setReuseAddress(true);
         sessionConf.setTcpNoDelay(true);
         sessionConf.setSendBufferSize(sendBufferSize);
         sessionConf.setReadBufferSize(receiveBufferSize);
+        // prevent the background blocking queue
+        sessionConf.setUseReadOperation(false);
+        // seconds
+        sessionConf.setWriteTimeout(writeTimeout);
+        // set an idle time of 30s
+        sessionConf.setIdleTime(IdleStatus.BOTH_IDLE, idleTimeout);
         // close sessions when the acceptor is stopped
         acceptor.setCloseOnDeactivation(true);
         // requested maximum length of the queue of incoming connections
@@ -143,7 +191,7 @@ public class WebSocketTransport implements InitializingBean, DisposableBean {
                 log.debug("Binding to {}", socketAddresses.toString());
                 acceptor.bind(socketAddresses);
             } catch (Exception e) {
-                log.error("Exception occurred during resolve / bind", e);
+                log.warn("Exception occurred during resolve / bind", e);
             }
         }
         log.info("started {} websocket transport", (isSecure() ? "secure" : ""));
@@ -168,27 +216,42 @@ public class WebSocketTransport implements InitializingBean, DisposableBean {
     }
 
     /**
-     * @param port
-     *            the port to set
+     * @param port the port to set
      */
     public void setPort(int port) {
         this.port = port;
     }
 
     /**
-     * @param sendBufferSize
-     *            the sendBufferSize to set
+     * @param sendBufferSize the sendBufferSize to set
      */
     public void setSendBufferSize(int sendBufferSize) {
         this.sendBufferSize = sendBufferSize;
     }
 
     /**
-     * @param receiveBufferSize
-     *            the receiveBufferSize to set
+     * @param receiveBufferSize the receiveBufferSize to set
      */
     public void setReceiveBufferSize(int receiveBufferSize) {
         this.receiveBufferSize = receiveBufferSize;
+    }
+
+    /**
+     * Write timeout.
+     * 
+     * @param writeTimeout
+     */
+    public void setWriteTimeout(int writeTimeout) {
+        this.writeTimeout = writeTimeout;
+    }
+
+    /**
+     * Idle timeout.
+     * 
+     * @param idleTimeout
+     */
+    public void setIdleTimeout(int idleTimeout) {
+        this.idleTimeout = idleTimeout;
     }
 
     /**
