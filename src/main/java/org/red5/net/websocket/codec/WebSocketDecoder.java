@@ -261,8 +261,8 @@ public class WebSocketDecoder extends CumulativeProtocolDecoder {
      */
     private Map<String, Object> parseClientRequest(WebSocketConnection conn, String requestData) throws WebSocketException {
         String[] request = requestData.split("\r\n");
-        if (log.isTraceEnabled()) {
-            log.trace("Request: {}", Arrays.toString(request));
+        if (log.isDebugEnabled()) {
+            log.debug("Request: {}", Arrays.toString(request));
         }
         // host and origin for validation purposes
         String host = null, origin = null;
@@ -392,6 +392,9 @@ public class WebSocketDecoder extends CumulativeProtocolDecoder {
      * @throws WebSocketException
      */
     private HandshakeResponse buildHandshakeResponse(WebSocketConnection conn, String clientKey) throws WebSocketException {
+        if (log.isDebugEnabled()) {
+            log.debug("buildHandshakeResponse: {} client key: {}", conn, clientKey);
+        }
         byte[] accept;
         try {
             // performs the accept creation routine from RFC6455 @see <a href="http://tools.ietf.org/html/rfc6455">RFC6455</a>
@@ -445,6 +448,9 @@ public class WebSocketDecoder extends CumulativeProtocolDecoder {
      * @throws WebSocketException
      */
     private HandshakeResponse build400Response(WebSocketConnection conn) throws WebSocketException {
+        if (log.isDebugEnabled()) {
+            log.debug("build400Response: {}", conn);
+        }
         // make up reply data...
         IoBuffer buf = IoBuffer.allocate(32);
         buf.setAutoExpand(true);
@@ -466,6 +472,9 @@ public class WebSocketDecoder extends CumulativeProtocolDecoder {
      * @throws WebSocketException
      */
     private HandshakeResponse build403Response(WebSocketConnection conn) throws WebSocketException {
+        if (log.isDebugEnabled()) {
+            log.debug("build403Response: {}", conn);
+        }
         // make up reply data...
         IoBuffer buf = IoBuffer.allocate(32);
         buf.setAutoExpand(true);
@@ -666,9 +675,8 @@ public class WebSocketDecoder extends CumulativeProtocolDecoder {
         String[] params = query.split("&");
         Map<String, Object> map = new HashMap<String, Object>();
         for (String param : params) {
-            String name = param.split("=")[0];
-            String value = param.split("=")[1];
-            map.put(name, value);
+            String[] nameValue = param.split("=");
+            map.put(nameValue[0], nameValue[1]);
         }
         return map;
     }

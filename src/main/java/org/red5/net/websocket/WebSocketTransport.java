@@ -65,6 +65,7 @@ public class WebSocketTransport implements InitializingBean, DisposableBean {
 
     private int writeTimeout = 30;
     
+    // use -1 to disable idle timeout handling
     private int idleTimeout = 60;
     
     private IoHandlerAdapter ioHandler;
@@ -110,13 +111,13 @@ public class WebSocketTransport implements InitializingBean, DisposableBean {
 
             @Override
             public void sessionCreated(IoSession session) throws Exception {
-                log.info("sessionCreated: {}", session);
+                log.debug("sessionCreated: {}", session);
                 //log.trace("Acceptor sessions: {}", acceptor.getManagedSessions());
             }
 
             @Override
             public void sessionClosed(IoSession session) throws Exception {
-                log.info("sessionClosed: {}", session);
+                log.debug("sessionClosed: {}", session);
             }
 
             @Override
@@ -135,8 +136,10 @@ public class WebSocketTransport implements InitializingBean, DisposableBean {
         sessionConf.setUseReadOperation(false);
         // seconds
         sessionConf.setWriteTimeout(writeTimeout);
-        // set an idle time of 30s
-        sessionConf.setIdleTime(IdleStatus.BOTH_IDLE, idleTimeout);
+        // set an idle time in seconds
+        if (idleTimeout > 0) {
+            sessionConf.setIdleTime(IdleStatus.BOTH_IDLE, idleTimeout);
+        }
         // close sessions when the acceptor is stopped
         acceptor.setCloseOnDeactivation(true);
         // requested maximum length of the queue of incoming connections
