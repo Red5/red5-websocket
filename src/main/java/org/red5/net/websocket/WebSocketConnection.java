@@ -107,6 +107,16 @@ public class WebSocketConnection {
     private List<String> allowedOrigins;
 
     /**
+     * Timeout to wait for the handshake response to be written.
+     */
+    private long handshakeWriteTimeout;
+
+    /**
+     * Timeout to wait for handshake latch to be completed. Used to prevent sending to an socket that's not ready.
+     */
+    private long latchTimeout;
+    
+    /**
      * constructor
      */
     public WebSocketConnection(IoSession session) {
@@ -121,6 +131,8 @@ public class WebSocketConnection {
             }
             log.debug("allowedOrigins: {}", allowedOrigins);
         }
+        handshakeWriteTimeout = WebSocketTransport.getHandshakeWriteTimeout();
+        latchTimeout = WebSocketTransport.getLatchTimeout();        
     }
 
     /**
@@ -159,8 +171,10 @@ public class WebSocketConnection {
                     @Override
                     public void operationComplete(WriteFuture future) {
                         if (future.isWritten()) {
+                            // handshake is finished
                             log.debug("Handshake write success!");
                             session.setAttribute(Constants.HANDSHAKE_COMPLETE);
+                            setConnected();
                         } else {
                             log.debug("Handshake write failed from: {} to: {}", future.getSession().getLocalAddress(), future.getSession().getRemoteAddress());
                         }
@@ -169,7 +183,7 @@ public class WebSocketConnection {
 
                 });
                 try {
-                    future.await(2000L, TimeUnit.MILLISECONDS);
+                    future.await(handshakeWriteTimeout, TimeUnit.MILLISECONDS);
                 } catch (InterruptedException e) {
                     log.warn("Interrupted waiting for handshake response completion", e);
                 }
@@ -190,7 +204,7 @@ public class WebSocketConnection {
     public void send(String data) throws UnsupportedEncodingException {
         log.trace("send message: {}", data);
         try {
-            if (handshakeLatch.await(500L, TimeUnit.MILLISECONDS)) {
+            if (handshakeLatch.await(latchTimeout, TimeUnit.MILLISECONDS)) {
                 if (StringUtils.isNotBlank(data)) {
                     Packet packet = Packet.build(data.getBytes("UTF8"), MessageType.TEXT);
                     session.write(packet);
@@ -215,7 +229,7 @@ public class WebSocketConnection {
             log.trace("send binary: {}", Arrays.toString(buf));
         }
         try {
-            if (handshakeLatch.await(500L, TimeUnit.MILLISECONDS)) {
+            if (handshakeLatch.await(latchTimeout, TimeUnit.MILLISECONDS)) {
                 Packet packet = Packet.build(buf);
                 session.write(packet);
             } else {
@@ -530,6 +544,22 @@ public class WebSocketConnection {
      */
     public void setProtocol(String protocol) {
         this.protocol = protocol;
+    }
+
+    public long getHandshakeWriteTimeout() {
+        return handshakeWriteTimeout;
+    }
+
+    public void setHandshakeWriteTimeout(long handshakeWriteTimeout) {
+        this.handshakeWriteTimeout = handshakeWriteTimeout;
+    }
+
+    public long getLatchTimeout() {
+        return latchTimeout;
+    }
+
+    public void setLatchTimeout(long latchTimeout) {
+        this.latchTimeout = latchTimeout;
     }
 
     public boolean isSameOriginPolicy() {

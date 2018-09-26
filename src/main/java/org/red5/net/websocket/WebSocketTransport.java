@@ -44,8 +44,7 @@ import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.InitializingBean;
 
 /**
- * WebSocketTransport
- * <br>
+ * WebSocketTransport <br>
  * this class will be instanced in red5.xml(or other xml files). * will make port listen...
  * 
  * @author Toda Takahiko
@@ -64,10 +63,20 @@ public class WebSocketTransport implements InitializingBean, DisposableBean {
     private Set<String> addresses = new HashSet<>();
 
     private int writeTimeout = 30;
-    
+
     // use -1 to disable idle timeout handling
     private int idleTimeout = 60;
-    
+
+    /**
+     * Timeout to wait for the handshake response to be written.
+     */
+    private static long handshakeWriteTimeout = 2000L;
+
+    /**
+     * Timeout to wait for handshake latch to be completed. Used to prevent sending to an socket that's not ready.
+     */
+    private static long latchTimeout = 1000L;
+
     private IoHandlerAdapter ioHandler;
 
     private SocketAcceptor acceptor;
@@ -125,7 +134,7 @@ public class WebSocketTransport implements InitializingBean, DisposableBean {
                 //log.debug("sessionDestroyed: {}", session);
             }
 
-        });        
+        });
         // configure the acceptor
         SocketSessionConfig sessionConf = acceptor.getSessionConfig();
         sessionConf.setReuseAddress(true);
@@ -219,21 +228,24 @@ public class WebSocketTransport implements InitializingBean, DisposableBean {
     }
 
     /**
-     * @param port the port to set
+     * @param port
+     *            the port to set
      */
     public void setPort(int port) {
         this.port = port;
     }
 
     /**
-     * @param sendBufferSize the sendBufferSize to set
+     * @param sendBufferSize
+     *            the sendBufferSize to set
      */
     public void setSendBufferSize(int sendBufferSize) {
         this.sendBufferSize = sendBufferSize;
     }
 
     /**
-     * @param receiveBufferSize the receiveBufferSize to set
+     * @param receiveBufferSize
+     *            the receiveBufferSize to set
      */
     public void setReceiveBufferSize(int receiveBufferSize) {
         this.receiveBufferSize = receiveBufferSize;
@@ -257,15 +269,33 @@ public class WebSocketTransport implements InitializingBean, DisposableBean {
         this.idleTimeout = idleTimeout;
     }
 
+    public static long getHandshakeWriteTimeout() {
+        return handshakeWriteTimeout;
+    }
+
+    public static void setHandshakeWriteTimeout(long handshakeWriteTimeout) {
+        WebSocketTransport.handshakeWriteTimeout = handshakeWriteTimeout;
+    }
+
+    public static long getLatchTimeout() {
+        return latchTimeout;
+    }
+
+    public static void setLatchTimeout(long latchTimeout) {
+        WebSocketTransport.latchTimeout = latchTimeout;
+    }
+
     /**
-     * @param connectionThreads the connectionThreads to set
+     * @param connectionThreads
+     *            the connectionThreads to set
      */
     @Deprecated
     public void setConnectionThreads(int connectionThreads) {
     }
 
     /**
-     * @param ioThreads the ioThreads to set
+     * @param ioThreads
+     *            the ioThreads to set
      */
     @Deprecated
     public void setIoThreads(int ioThreads) {

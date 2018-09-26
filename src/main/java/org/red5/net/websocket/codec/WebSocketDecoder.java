@@ -230,8 +230,6 @@ public class WebSocketDecoder extends CumulativeProtocolDecoder {
                     }
                     log.debug("Scope listener does{} support the '{}' protocol", (protocolSupported ? "" : "n't"), protocol);
                 }
-                // handshake is finished
-                conn.setConnected();
                 // add connection to the manager
                 manager.addConnection(conn);
                 // prepare response and write it to the directly to the session
