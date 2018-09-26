@@ -73,6 +73,8 @@ public class Constants {
 
     // simple text content to go with our close message / packet
     public static final byte[] CLOSE_MESSAGE_BYTES;
+
+    public static final Boolean HANDSHAKE_COMPLETE = Boolean.TRUE;
     
     static {
         IoBuffer buf = IoBuffer.allocate(16);

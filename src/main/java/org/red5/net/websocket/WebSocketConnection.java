@@ -24,6 +24,8 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.commons.lang3.StringUtils;
@@ -60,6 +62,8 @@ public class WebSocketConnection {
     private ConnectionType type = ConnectionType.WEB;
 
     private AtomicBoolean connected = new AtomicBoolean(false);
+
+    private CountDownLatch handshakeLatch = new CountDownLatch(1);
 
     private IoSession session;
 
@@ -138,18 +142,66 @@ public class WebSocketConnection {
     }
 
     /**
+     * Sends the handshake response.
+     * 
+     * @param wsResponse
+     */
+    public void sendHandshakeResponse(HandshakeResponse wsResponse) {
+        // we'll do this in a separate thread so it wont violate the mina io rules
+        Thread hs = new Thread(new Runnable() {
+
+            @Override
+            public void run() {
+                // create write future
+                WriteFuture future = session.write(wsResponse);
+                future.addListener(new IoFutureListener<WriteFuture>() {
+
+                    @Override
+                    public void operationComplete(WriteFuture future) {
+                        if (future.isWritten()) {
+                            log.debug("Handshake write success!");
+                            session.setAttribute(Constants.HANDSHAKE_COMPLETE);
+                        } else {
+                            log.debug("Handshake write failed from: {} to: {}", future.getSession().getLocalAddress(), future.getSession().getRemoteAddress());
+                        }
+                        handshakeLatch.countDown();
+                    }
+
+                });
+                try {
+                    future.await(2000L, TimeUnit.MILLISECONDS);
+                } catch (InterruptedException e) {
+                    log.warn("Interrupted waiting for handshake response completion", e);
+                }
+                log.debug("Handshake complete: {}", session.containsAttribute(Constants.HANDSHAKE_COMPLETE));
+            }
+        }, String.format("WSHandshakeResponse@%d", session.getId()));
+        hs.setDaemon(true);
+        hs.start();
+    }
+
+    /**
      * Sends text to the client.
      * 
-     * @param data string data
+     * @param data
+     *            string data
      * @throws UnsupportedEncodingException
      */
     public void send(String data) throws UnsupportedEncodingException {
         log.trace("send message: {}", data);
-        if (StringUtils.isNotBlank(data)) {
-            Packet packet = Packet.build(data.getBytes("UTF8"), MessageType.TEXT);
-            session.write(packet);
-        } else {
-            throw new UnsupportedEncodingException("Cannot send a null string");
+        try {
+            if (handshakeLatch.await(500L, TimeUnit.MILLISECONDS)) {
+                if (StringUtils.isNotBlank(data)) {
+                    Packet packet = Packet.build(data.getBytes("UTF8"), MessageType.TEXT);
+                    session.write(packet);
+                } else {
+                    throw new UnsupportedEncodingException("Cannot send a null string");
+                }
+            } else {
+                log.warn("Timed out waiting for handshake to complete, send failed");
+            }
+        } catch (InterruptedException e) {
+            log.warn("Interrupted waiting for handshake to complete, send failed", e);
         }
     }
 
@@ -162,8 +214,16 @@ public class WebSocketConnection {
         if (log.isTraceEnabled()) {
             log.trace("send binary: {}", Arrays.toString(buf));
         }
-        Packet packet = Packet.build(buf);
-        session.write(packet);
+        try {
+            if (handshakeLatch.await(500L, TimeUnit.MILLISECONDS)) {
+                Packet packet = Packet.build(buf);
+                session.write(packet);
+            } else {
+                log.warn("Timed out waiting for handshake to complete, send failed");
+            }
+        } catch (InterruptedException e) {
+            log.warn("Interrupted waiting for handshake to complete, send failed", e);
+        }
     }
 
     /**
