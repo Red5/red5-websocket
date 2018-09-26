@@ -26,6 +26,8 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.mina.core.buffer.IoBuffer;
+import org.apache.mina.core.future.IoFutureListener;
+import org.apache.mina.core.future.WriteFuture;
 import org.apache.mina.core.session.IoSession;
 import org.apache.mina.filter.codec.CumulativeProtocolDecoder;
 import org.apache.mina.filter.codec.ProtocolDecoderOutput;
@@ -236,11 +238,30 @@ public class WebSocketDecoder extends CumulativeProtocolDecoder {
                 manager.addConnection(conn);
                 // prepare response and write it to the directly to the session
                 HandshakeResponse wsResponse = buildHandshakeResponse(conn, (String) headers.get(Constants.WS_HEADER_KEY));
-                session.write(wsResponse);
+                WriteFuture future = session.write(wsResponse);
+                future.addListener(new IoFutureListener<WriteFuture>() {
+
+                    @Override
+                    public void operationComplete(WriteFuture future) {
+                        if (future.isWritten()) {
+                            log.debug("Write success!");
+                        } else {
+                            log.debug("Write failed from: {} to: {}", session.getLocalAddress(), session.getRemoteAddress());
+                        }
+                    }
+
+                });
+                // wait 2s for write
+                if (future.await(2000L)) {
+                    // remove handshake acculator
+                    session.removeAttribute(Constants.WS_HANDSHAKE);
+                    log.debug("Handshake complete");
+                    return true;
+                } else {
+                    log.debug("Write future wait timed out");
+                }
                 // remove handshake acculator
                 session.removeAttribute(Constants.WS_HANDSHAKE);
-                log.debug("Handshake complete");
-                return true;
             }
             // set connection as native / direct
             conn.setType(ConnectionType.DIRECT);
