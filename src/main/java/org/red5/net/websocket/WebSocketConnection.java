@@ -182,10 +182,10 @@ public class WebSocketConnection {
                     }
 
                 });
-                try {
-                    future.await(handshakeWriteTimeout, TimeUnit.MILLISECONDS);
-                } catch (InterruptedException e) {
-                    log.warn("Interrupted waiting for handshake response completion", e);
+                if (future.awaitUninterruptibly(handshakeWriteTimeout, TimeUnit.MILLISECONDS)) {
+                    log.debug("Handshake write completed within {}ms", handshakeWriteTimeout);
+                } else {
+                    log.debug("Handshake write did not completed within {}ms", handshakeWriteTimeout);
                 }
                 log.debug("Handshake complete: {}", session.containsAttribute(Constants.HANDSHAKE_COMPLETE));
             }
