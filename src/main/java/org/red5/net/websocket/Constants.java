@@ -75,6 +75,8 @@ public class Constants {
     public static final byte[] CLOSE_MESSAGE_BYTES;
 
     public static final Boolean HANDSHAKE_COMPLETE = Boolean.TRUE;
+
+    public static final String IDLE_COUNTER = "idle.counter";
     
     static {
         IoBuffer buf = IoBuffer.allocate(16);

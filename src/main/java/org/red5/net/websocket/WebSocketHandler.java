@@ -73,13 +73,21 @@ public class WebSocketHandler extends IoHandlerAdapter {
         //if (log.isTraceEnabled()) {
         log.info("Idle (session: {}) local: {} remote: {}\nread: {} write: {}", session.getId(), session.getLocalAddress(), session.getRemoteAddress(), session.getReadBytes(), session.getWrittenBytes());
         //}
+        int idleCount = 1;
+        if (session.containsAttribute(Constants.IDLE_COUNTER)) {
+            idleCount = (int) session.getAttribute(Constants.IDLE_COUNTER);
+            idleCount += 1;
+        } else {
+            session.setAttribute(Constants.IDLE_COUNTER, idleCount);
+        }
         // get the existing reference to a ws connection
         WebSocketConnection conn = (WebSocketConnection) session.getAttribute(Constants.CONNECTION);
-        if (conn != null) {
+        // after the first idle we force-close
+        if (conn != null && idleCount == 1) {
             // close the idle socket
             conn.close();
         } else {
-            log.debug("WebSocketConnection attribute was empty, force closing idle session: {}", session);
+            log.info("Force closing idle session: {}", session);
             // clear write queue
             WriteRequestQueue writeQueue = session.getWriteRequestQueue();
             if (!writeQueue.isEmpty(session)) {
@@ -91,7 +99,7 @@ public class WebSocketHandler extends IoHandlerAdapter {
 
                 public void operationComplete(CloseFuture future) {
                     // now connection should be closed
-                    log.debug("Close operation completed {}: {}", session.getId(), future.isClosed());
+                    log.info("Close operation completed {}: {}", session.getId(), future.isClosed());
                     future.removeListener(this);
                 }
 
