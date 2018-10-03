@@ -178,8 +178,6 @@ public class WebSocketDecoder extends CumulativeProtocolDecoder {
         }
         // create the connection obj
         WebSocketConnection conn = new WebSocketConnection(session);
-        // store connection in the current session
-        session.setAttribute(Constants.CONNECTION, conn);
         // mark as secure if using ssl
         if (session.getFilterChain().contains("sslFilter")) {
             conn.setSecure(true);

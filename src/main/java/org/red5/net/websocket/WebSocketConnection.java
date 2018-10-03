@@ -121,6 +121,8 @@ public class WebSocketConnection {
      */
     public WebSocketConnection(IoSession session) {
         this.session = session;
+        // store connection in the current session
+        session.setAttribute(Constants.CONNECTION, this);
         // use initial configuration from WebSocketTransport
         sameOriginPolicy = WebSocketTransport.isSameOriginPolicy();
         crossOriginPolicy = WebSocketTransport.isCrossOriginPolicy();
@@ -170,13 +172,15 @@ public class WebSocketConnection {
 
                     @Override
                     public void operationComplete(WriteFuture future) {
+                        IoSession sess = future.getSession();
                         if (future.isWritten()) {
                             // handshake is finished
-                            log.debug("Handshake write success!");
-                            session.setAttribute(Constants.HANDSHAKE_COMPLETE);
-                            setConnected();
+                            log.debug("Handshake write success! {}", sess.getId());
+                            sess.setAttribute(Constants.HANDSHAKE_COMPLETE);
+                            WebSocketConnection conn = (WebSocketConnection) sess.getAttribute(Constants.CONNECTION);
+                            conn.setConnected();
                         } else {
-                            log.debug("Handshake write failed from: {} to: {}", future.getSession().getLocalAddress(), future.getSession().getRemoteAddress());
+                            log.debug("Handshake write failed from: {} to: {}", sess.getLocalAddress(), sess.getRemoteAddress());
                         }
                         handshakeLatch.countDown();
                     }

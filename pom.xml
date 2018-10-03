@@ -9,7 +9,7 @@
     <artifactId>websocket</artifactId>
     <packaging>jar</packaging>
     <name>websocket</name>
-    <version>1.16.10</version>
+    <version>1.16.11</version>
     <description>Red5 WebSocket plugin</description>
     <url>https://github.com/Red5/red5-websocket</url>
     <organization>
