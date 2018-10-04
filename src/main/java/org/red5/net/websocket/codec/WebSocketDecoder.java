@@ -122,8 +122,8 @@ public class WebSocketDecoder extends CumulativeProtocolDecoder {
             decodeIncommingData(in, session);
             // this will be null until all the fragments are collected
             WSMessage message = (WSMessage) session.getAttribute(DECODED_MESSAGE_KEY);
-            if (log.isTraceEnabled()) {
-                log.trace("State: {} message: {}", decoderState, message);
+            if (log.isDebugEnabled()) {
+                log.debug("State: {} message: {}", decoderState, message);
             }
             if (message != null) {
                 // set the originating connection on the message

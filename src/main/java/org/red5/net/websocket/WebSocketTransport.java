@@ -70,12 +70,12 @@ public class WebSocketTransport implements InitializingBean, DisposableBean {
     /**
      * Timeout to wait for the handshake response to be written.
      */
-    private static long handshakeWriteTimeout = 2000L;
+    private static long handshakeWriteTimeout = 5000L;
 
     /**
      * Timeout to wait for handshake latch to be completed. Used to prevent sending to an socket that's not ready.
      */
-    private static long latchTimeout = 1000L;
+    private static long latchTimeout = handshakeWriteTimeout;
 
     private IoHandlerAdapter ioHandler;
 
@@ -206,7 +206,7 @@ public class WebSocketTransport implements InitializingBean, DisposableBean {
                 log.warn("Exception occurred during resolve / bind", e);
             }
         }
-        log.info("started {} websocket transport", (isSecure() ? "secure" : ""));
+        log.info("Started {} websocket transport. Timeouts - idle: {} write: {}", (isSecure() ? "secure" : ""), idleTimeout, writeTimeout);
         if (log.isDebugEnabled()) {
             log.debug("Acceptor sizes - send: {} recv: {}", acceptor.getSessionConfig().getSendBufferSize(), acceptor.getSessionConfig().getReadBufferSize());
         }
