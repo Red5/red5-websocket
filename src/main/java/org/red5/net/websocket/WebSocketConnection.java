@@ -116,8 +116,8 @@ public class WebSocketConnection {
     // temporary send queue
     private ConcurrentLinkedQueue<Packet> queue = new ConcurrentLinkedQueue<>();
 
-    private WriteFuture handshakeWriteFuture;    
-    
+    private WriteFuture handshakeWriteFuture;
+
     /**
      * constructor
      */
@@ -163,45 +163,37 @@ public class WebSocketConnection {
      * @param wsResponse
      */
     public void sendHandshakeResponse(HandshakeResponse wsResponse) {
-        // we'll do this in a separate thread so it wont violate the mina io rules
-        Thread hs = new Thread(new Runnable() {
+        log.debug("Writing handshake on session: {}", session.getId());
+        // create write future
+        handshakeWriteFuture = session.write(wsResponse);
+        handshakeWriteFuture.addListener(new IoFutureListener<WriteFuture>() {
 
             @Override
-            public void run() {
-                log.debug("Writing handshake on session: {}", session.getId());
-                // create write future
-                handshakeWriteFuture = session.write(wsResponse);
-                handshakeWriteFuture.addListener(new IoFutureListener<WriteFuture>() {
-
-                    @Override
-                    public void operationComplete(WriteFuture future) {
-                        IoSession sess = future.getSession();
-                        if (future.isWritten()) {
-                            // handshake is finished
-                            log.debug("Handshake write success! {}", sess.getId());
-                            // set completed flag
-                            sess.setAttribute(Constants.HANDSHAKE_COMPLETE);
-                            // set connected state on ws connection
-                            WebSocketConnection conn = (WebSocketConnection) sess.getAttribute(Constants.CONNECTION);
-                            conn.setConnected();
-                            try {
-                                // send queued packets
-                                queue.forEach(entry -> {
-                                    sess.write(entry);
-                                    queue.remove(entry);
-                                });
-                            } catch (Exception e) {
-                                log.warn("Exception draining queued packets on session: {}", sess.getId(), e);
-                            }
-                        } else {
-                            log.debug("Handshake write failed from: {} to: {}", sess.getLocalAddress(), sess.getRemoteAddress());
+            public void operationComplete(WriteFuture future) {
+                IoSession sess = future.getSession();
+                if (future.isWritten()) {
+                    // handshake is finished
+                    log.debug("Handshake write success! {}", sess.getId());
+                    // set completed flag
+                    sess.setAttribute(Constants.HANDSHAKE_COMPLETE);
+                    // set connected state on ws connection
+                    if (connected.compareAndSet(false, true)) {
+                        try {
+                            // send queued packets
+                            queue.forEach(entry -> {
+                                sess.write(entry);
+                                queue.remove(entry);
+                            });
+                        } catch (Exception e) {
+                            log.warn("Exception draining queued packets on session: {}", sess.getId(), e);
                         }
                     }
-
-                });
+                } else {
+                    log.warn("Handshake write failed from: {} to: {}", sess.getLocalAddress(), sess.getRemoteAddress());
+                }
             }
-        }, String.format("WSHandshakeResponse@%d", session.getId()));
-        hs.start();
+
+        });
     }
 
     /**
@@ -420,7 +412,7 @@ public class WebSocketConnection {
     }
 
     /**
-     * on connected, put flg and clear keys.
+     * On connected, set flag.
      */
     public void setConnected() {
         connected.compareAndSet(false, true);
