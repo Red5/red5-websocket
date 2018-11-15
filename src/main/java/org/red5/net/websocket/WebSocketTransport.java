@@ -67,6 +67,9 @@ public class WebSocketTransport implements InitializingBean, DisposableBean {
     // use -1 to disable idle timeout handling
     private int idleTimeout = 60;
 
+    // whether to attempt using close messages or just force closing
+    private static boolean niceClose;
+    
     /**
      * Timeout to wait for the handshake response to be written.
      */
@@ -311,6 +314,14 @@ public class WebSocketTransport implements InitializingBean, DisposableBean {
 
     public void setSecureConfig(SecureWebSocketConfiguration secureConfig) {
         this.secureConfig = secureConfig;
+    }
+
+    public static boolean isNiceClose() {
+        return niceClose;
+    }
+
+    public static void setNiceClose(boolean niceClose) {
+        WebSocketTransport.niceClose = niceClose;
     }
 
     public static boolean isSameOriginPolicy() {

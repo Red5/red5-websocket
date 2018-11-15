@@ -298,8 +298,93 @@ public class WebSocketConnection {
             session.removeAttribute(Constants.HANDSHAKE_COMPLETE);
             // clear the delay queue
             queue.clear();
-            // send a proper ws close
-            Packet packet = Packet.build(Constants.CLOSE_MESSAGE_BYTES, MessageType.CLOSE);
+            // whether to attempt a nice close or a forceful one
+            if (WebSocketTransport.isNiceClose()) {
+                // send a proper ws close
+                Packet packet = Packet.build(Constants.CLOSE_MESSAGE_BYTES, MessageType.CLOSE);
+                WriteFuture writeFuture = session.write(packet);
+                writeFuture.addListener(new IoFutureListener<WriteFuture>() {
+
+                    @Override
+                    public void operationComplete(WriteFuture future) {
+                        if (future.isWritten()) {
+                            log.debug("Close message written");
+                            // only set on success for now to skip boolean check later
+                            session.setAttribute(Constants.STATUS_CLOSE_WRITTEN, Boolean.TRUE);
+                        }
+                        future.removeListener(this);
+                    }
+
+                });
+                // adjust close routine to allow for flushing
+                CloseFuture closeFuture = session.closeOnFlush();
+                closeFuture.addListener(new IoFutureListener<CloseFuture>() {
+
+                    public void operationComplete(CloseFuture future) {
+                        if (future.isClosed()) {
+                            log.debug("Connection is closed");
+                        } else {
+                            log.debug("Connection is not yet closed");
+                        }
+                        future.removeListener(this);
+                    }
+
+                });
+            } else {
+                // force close
+                CloseFuture closeFuture = session.closeNow();
+                closeFuture.addListener(new IoFutureListener<CloseFuture>() {
+
+                    public void operationComplete(CloseFuture future) {
+                        if (future.isClosed()) {
+                            log.debug("Connection is closed");
+                        } else {
+                            log.debug("Connection is not yet closed");
+                        }
+                        future.removeListener(this);
+                    }
+
+                });
+            }
+        }
+    }
+
+    /**
+     * Close with an associated error status.
+     * 
+     * @param statusCode
+     * @param errResponse
+     */
+    public void close(int statusCode, HandshakeResponse errResponse) {
+        log.warn("Closing connection with status: {}", statusCode);
+        // remove handshake flag
+        session.removeAttribute(Constants.HANDSHAKE_COMPLETE);
+        // clear the delay queue
+        queue.clear();
+        // send http error response
+        session.write(errResponse);
+        // whether to attempt a nice close or a forceful one
+        if (WebSocketTransport.isNiceClose()) {
+            // now send close packet with error code
+            IoBuffer buf = IoBuffer.allocate(16);
+            buf.setAutoExpand(true);
+            // all errors except 403 will use 1002
+            buf.putUnsigned((short) statusCode);
+            try {
+                if (statusCode == 1008) {
+                    // if its a 403 forbidden
+                    buf.put("Policy Violation".getBytes("UTF8"));
+                } else {
+                    buf.put("Protocol error".getBytes("UTF8"));
+                }
+            } catch (Exception e) {
+                // shouldnt be any text encoding issues...
+            }
+            buf.flip();
+            byte[] errBytes = new byte[buf.remaining()];
+            buf.get(errBytes);
+            // construct the packet
+            Packet packet = Packet.build(errBytes, MessageType.CLOSE);
             WriteFuture writeFuture = session.write(packet);
             writeFuture.addListener(new IoFutureListener<WriteFuture>() {
 
@@ -328,71 +413,22 @@ public class WebSocketConnection {
                 }
 
             });
-        }
-    }
+        } else {
+            // force close
+            CloseFuture closeFuture = session.closeNow();
+            closeFuture.addListener(new IoFutureListener<CloseFuture>() {
 
-    /**
-     * Close with an associated error status.
-     * 
-     * @param statusCode
-     * @param errResponse
-     */
-    public void close(int statusCode, HandshakeResponse errResponse) {
-        log.warn("Closing connection with status: {}", statusCode);
-        // remove handshake flag
-        session.removeAttribute(Constants.HANDSHAKE_COMPLETE);
-        // clear the delay queue
-        queue.clear();
-        // send http error response
-        session.write(errResponse);
-        // now send close packet with error code
-        IoBuffer buf = IoBuffer.allocate(16);
-        buf.setAutoExpand(true);
-        // all errors except 403 will use 1002
-        buf.putUnsigned((short) statusCode);
-        try {
-            if (statusCode == 1008) {
-                // if its a 403 forbidden
-                buf.put("Policy Violation".getBytes("UTF8"));
-            } else {
-                buf.put("Protocol error".getBytes("UTF8"));
-            }
-        } catch (Exception e) {
-            // shouldnt be any text encoding issues...
-        }
-        buf.flip();
-        byte[] errBytes = new byte[buf.remaining()];
-        buf.get(errBytes);
-        // construct the packet
-        Packet packet = Packet.build(errBytes, MessageType.CLOSE);
-        WriteFuture writeFuture = session.write(packet);
-        writeFuture.addListener(new IoFutureListener<WriteFuture>() {
-
-            @Override
-            public void operationComplete(WriteFuture future) {
-                if (future.isWritten()) {
-                    log.debug("Close message written");
-                    // only set on success for now to skip boolean check later
-                    session.setAttribute(Constants.STATUS_CLOSE_WRITTEN, Boolean.TRUE);
+                public void operationComplete(CloseFuture future) {
+                    if (future.isClosed()) {
+                        log.debug("Connection is closed");
+                    } else {
+                        log.debug("Connection is not yet closed");
+                    }
+                    future.removeListener(this);
                 }
-                future.removeListener(this);
-            }
 
-        });
-        // adjust close routine to allow for flushing
-        CloseFuture closeFuture = session.closeOnFlush();
-        closeFuture.addListener(new IoFutureListener<CloseFuture>() {
-
-            public void operationComplete(CloseFuture future) {
-                if (future.isClosed()) {
-                    log.debug("Connection is closed");
-                } else {
-                    log.debug("Connection is not yet closed");
-                }
-                future.removeListener(this);
-            }
-
-        });
+            });
+        }
         log.debug("Close complete");
     }
 
